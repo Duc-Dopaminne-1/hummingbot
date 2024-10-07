@@ -61,6 +61,7 @@ class TimeSynchronizer:
 
         :param time_provider: Awaitable object that returns the current time
         """
+        print("last_exception 33")
         try:
             local_before_ms: float = self._current_seconds_counter() * 1e3
             server_time_ms: float = await time_provider
@@ -72,7 +73,7 @@ class TimeSynchronizer:
             raise
         except Exception:
             self.logger().network("Error getting server time.", exc_info=True,
-                                  app_warning_msg="Could not refresh server time. Check network connection.")
+                                  app_warning_msg="Could not refresh server time. Check network connection.22")
 
     async def update_server_time_if_not_initialized(self, time_provider: Awaitable):
         """

@@ -560,6 +560,8 @@ def _merge_dicts(*args: Dict[str, ConfigVar]) -> OrderedDict:
 
 def get_connector_class(connector_name: str) -> Callable:
     conn_setting = AllConnectorSettings.get_connector_settings()[connector_name]
+    print("conn_setting")
+    print(conn_setting)
     mod = __import__(conn_setting.module_path(),
                      fromlist=[conn_setting.class_name()])
     return getattr(mod, conn_setting.class_name())

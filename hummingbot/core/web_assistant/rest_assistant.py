@@ -2,7 +2,7 @@ import json
 from asyncio import wait_for
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
-
+import logging
 from hummingbot.core.api_throttler.async_throttler_base import AsyncThrottlerBase
 from hummingbot.core.web_assistant.auth import AuthBase
 from hummingbot.core.web_assistant.connections.data_types import RESTMethod, RESTRequest, RESTResponse
@@ -44,6 +44,7 @@ class RESTAssistant:
         timeout: Optional[float] = None,
         headers: Optional[Dict[str, Any]] = None,
     ) -> Union[str, Dict[str, Any]]:
+
         response = await self.execute_request_and_get_response(
             url=url,
             throttler_limit_id=throttler_limit_id,
@@ -55,7 +56,13 @@ class RESTAssistant:
             timeout=timeout,
             headers=headers,
         )
+
         response_json = await response.json()
+        if url == "https://api.bitget.com/api/spot/v1/public/time":
+            print( {"serverTime": response_json['data']})
+            return {"serverTime": response_json['data']}
+
+        print(response_json)
         return response_json
 
     async def execute_request_and_get_response(
@@ -80,6 +87,7 @@ class RESTAssistant:
 
         data = json.dumps(data) if data is not None else data
 
+
         request = RESTRequest(
             method=method,
             url=url,
@@ -91,6 +99,7 @@ class RESTAssistant:
         )
 
         async with self._throttler.execute_task(limit_id=throttler_limit_id):
+
             response = await self.call(request=request, timeout=timeout)
 
             if 400 <= response.status:
@@ -99,14 +108,21 @@ class RESTAssistant:
                     error_text = "N/A" if "<html" in error_response else error_response
                     raise IOError(f"Error executing request {method.name} {url}. HTTP status is {response.status}. "
                                   f"Error: {error_text}")
+
             return response
 
     async def call(self, request: RESTRequest, timeout: Optional[float] = None) -> RESTResponse:
+
         request = deepcopy(request)
+
         request = await self._pre_process_request(request)
+
         request = await self._authenticate(request)
+
         resp = await wait_for(self._connection.call(request), timeout)
+
         resp = await self._post_process_response(resp)
+
         return resp
 
     async def _pre_process_request(self, request: RESTRequest) -> RESTRequest:

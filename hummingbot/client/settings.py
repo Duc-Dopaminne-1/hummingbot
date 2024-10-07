@@ -397,6 +397,7 @@ class AllConnectorSettings:
                 trade_fee_schema: TradeFeeSchema = cls._validate_trade_fee_schema(
                     connector_dir.name, trade_fee_settings
                 )
+
                 cls.all_connector_settings[connector_dir.name] = ConnectorSetting(
                     name=connector_dir.name,
                     type=ConnectorType[type_dir.name.capitalize()],

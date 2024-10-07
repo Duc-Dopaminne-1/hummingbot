@@ -47,6 +47,16 @@ class BitgetConfigMap(BaseConnectorConfigMap):
         )
     )
 
+    bitget_passphrase: SecretStr = Field(
+        default=...,
+        client_data=ClientFieldData(
+            prompt=lambda cm: "Enter your Bitget passphrase",
+            is_secure=True,
+            is_connect_key=True,
+            prompt_on_new=True,
+        )
+    )
+
     class Config:
         title = "bitget"
 

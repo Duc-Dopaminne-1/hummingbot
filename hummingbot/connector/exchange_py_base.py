@@ -794,6 +794,7 @@ class ExchangePyBase(ExchangeBase, ABC):
                 await self._sleep(0.5)
 
     async def _update_time_synchronizer(self, pass_on_non_cancelled_error: bool = False):
+        print("last_exception 22")
         try:
             await self._time_synchronizer.update_server_time_offset_with_time_provider(
                 time_provider=self.web_utils.get_current_server_time(
@@ -900,7 +901,9 @@ class ExchangePyBase(ExchangeBase, ABC):
         rest_assistant = await self._web_assistants_factory.get_rest_assistant()
 
         url = overwrite_url or await self._api_request_url(path_url=path_url, is_auth_required=is_auth_required)
-
+        print("=== API Start 3 ===")
+        print(url)
+        print("=== API End 3 ===")
         for _ in range(2):
             try:
                 request_result = await rest_assistant.execute_request(
@@ -913,7 +916,8 @@ class ExchangePyBase(ExchangeBase, ABC):
                     throttler_limit_id=limit_id if limit_id else path_url,
                     headers=headers,
                 )
-
+                print("request_result")
+                print(request_result)
                 return request_result
             except IOError as request_exception:
                 last_exception = request_exception
@@ -922,7 +926,6 @@ class ExchangePyBase(ExchangeBase, ABC):
                     await self._update_time_synchronizer()
                 else:
                     raise
-
         # Failed even after the last retry
         raise last_exception
 

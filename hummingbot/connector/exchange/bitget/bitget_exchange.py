@@ -38,12 +38,14 @@ class BitgetExchange(ExchangePyBase):
                  client_config_map: "ClientConfigAdapter",
                  bitget_api_key: str,
                  bitget_api_secret: str,
+                 bitget_passphrase: str = None,
                  trading_pairs: Optional[List[str]] = None,
                  trading_required: bool = True,
                  domain: str = CONSTANTS.DEFAULT_DOMAIN,
                  ):
         self.api_key = bitget_api_key
         self.secret_key = bitget_api_secret
+        self.bitget_passphrase = bitget_passphrase
         self._domain = domain
         self._trading_required = trading_required
         self._trading_pairs = trading_pairs
@@ -63,6 +65,7 @@ class BitgetExchange(ExchangePyBase):
         return BitgetAuth(
             api_key=self.api_key,
             secret_key=self.secret_key,
+            passphrase=self.bitget_passphrase,
             time_provider=self._time_synchronizer)
 
     @property
@@ -527,21 +530,35 @@ class BitgetExchange(ExchangePyBase):
     async def _update_balances(self):
         local_asset_names = set(self._account_balances.keys())
         remote_asset_names = set()
-
+        print("hello 1")
         account_info = await self._api_get(
             path_url=CONSTANTS.ACCOUNTS_PATH_URL,
             is_auth_required=True,
             headers={"Content-Type": "application/json"})
+        print("hello 222", account_info)
+        self._account_available_balances = {}
+        self._account_balances = {}
+        remote_asset_names = set()
 
-        balances = account_info["balances"]
+        # Lấy balances từ account_info
+        balances = account_info["data"]
+        # Duyệt qua từng phần tử của balances
         for balance_entry in balances:
-            asset_name = balance_entry["asset"]
-            free_balance = Decimal(balance_entry["free"])
-            total_balance = Decimal(balance_entry["free"]) + Decimal(balance_entry["locked"])
+            asset_name = balance_entry["coin"]  # Thay "asset" bằng "coin"
+            free_balance = Decimal(balance_entry["available"])  # Thay "free" bằng "available"
+            locked_balance = Decimal(balance_entry["locked"])  # Dùng "locked" hoặc "frozen" nếu có
+
+            # Tổng số dư bao gồm cả số dư đang bị khóa
+            total_balance = free_balance + locked_balance
+
+            # Lưu trữ số dư vào dictionary
             self._account_available_balances[asset_name] = free_balance
             self._account_balances[asset_name] = total_balance
+
+            # Thêm tên tài sản vào tập hợp remote_asset_names
             remote_asset_names.add(asset_name)
 
+        print("hello 333")
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)
         for asset_name in asset_names_to_remove:
             del self._account_available_balances[asset_name]

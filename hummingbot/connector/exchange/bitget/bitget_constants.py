@@ -7,21 +7,21 @@ HBOT_ORDER_ID_PREFIX = "HBOT"
 MAX_ORDER_ID_LEN = 32
 
 # Base URLs
-REST_URL = "https://api.bitget.{}/api/spot/v1"
+REST_URL = "https://api.bitget.com"
 WSS_URL = "wss://ws.bitget.{}/spot/v1/stream"
 
 # API Versions
-PUBLIC_API_VERSION = "v1"
-PRIVATE_API_VERSION = "v1"
+PUBLIC_API_VERSION = ""
+PRIVATE_API_VERSION = ""
 
 # Public API endpoints
 TICKER_PRICE_CHANGE_PATH_URL = "/market/ticker"
 SNAPSHOT_PATH_URL = "/market/depth"
 EXCHANGE_INFO_PATH_URL = "/public/products"
-SERVER_TIME_PATH_URL = "/public/time"
+SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
 
 # Private API endpoints
-ACCOUNTS_PATH_URL = "/account/getInfo"
+ACCOUNTS_PATH_URL = "/api/v2/spot/account/assets"
 MY_TRADES_PATH_URL = "/trade/fills"
 ORDER_PATH_URL = "/trade/order"
 
