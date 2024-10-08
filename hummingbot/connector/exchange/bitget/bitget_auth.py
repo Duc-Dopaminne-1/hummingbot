@@ -59,7 +59,7 @@ class BitgetAuth(AuthBase):
                 "sign": signature
             }
         ]
-        print(auth_info)
+
         return auth_info
 
     @staticmethod

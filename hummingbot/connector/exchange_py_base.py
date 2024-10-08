@@ -852,9 +852,13 @@ class ExchangePyBase(ExchangeBase, ABC):
     # === Exchange / Trading logic methods that call the API ===
 
     async def _update_trading_rules(self):
+        print("Duc _make_trading_rules_request 3")
         exchange_info = await self._make_trading_rules_request()
+        print("Duc _make_trading_rules_request 4")
         trading_rules_list = await self._format_trading_rules(exchange_info)
+        print("Duc _make_trading_rules_request 5")
         self._trading_rules.clear()
+        print("Duc _make_trading_rules_request 6")
         for trading_rule in trading_rules_list:
             self._trading_rules[trading_rule.trading_pair] = trading_rule
         self._initialize_trading_pair_symbols_from_exchange_info(exchange_info=exchange_info)
@@ -916,8 +920,6 @@ class ExchangePyBase(ExchangeBase, ABC):
                     throttler_limit_id=limit_id if limit_id else path_url,
                     headers=headers,
                 )
-                print("request_result")
-                print(request_result)
                 return request_result
             except IOError as request_exception:
                 last_exception = request_exception
@@ -1084,6 +1086,7 @@ class ExchangePyBase(ExchangeBase, ABC):
 
     async def _make_trading_rules_request(self) -> Any:
         exchange_info = await self._api_get(path_url=self.trading_rules_request_path)
+        print("666")
         return exchange_info
 
     async def _make_trading_pairs_request(self) -> Any:

@@ -223,8 +223,6 @@ class TestXRPLUtils(unittest.TestCase):
         metadata = self._event_message_limit_order_partially_filled().get("meta")
         result = compute_order_book_changes(metadata)
 
-        print(result)
-
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].get("maker_account"), "r2XdzWFVoHGfGVmXugtKhxMu3bqhsYiWK")
         self.assertEqual(len(result[0].get("offer_changes")), 1)

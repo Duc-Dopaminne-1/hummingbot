@@ -1,8 +1,9 @@
 import json
+import logging
 from asyncio import wait_for
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
-import logging
+
 from hummingbot.core.api_throttler.async_throttler_base import AsyncThrottlerBase
 from hummingbot.core.web_assistant.auth import AuthBase
 from hummingbot.core.web_assistant.connections.data_types import RESTMethod, RESTRequest, RESTResponse
@@ -62,7 +63,6 @@ class RESTAssistant:
             print( {"serverTime": response_json['data']})
             return {"serverTime": response_json['data']}
 
-        print(response_json)
         return response_json
 
     async def execute_request_and_get_response(

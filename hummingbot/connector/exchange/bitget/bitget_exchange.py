@@ -530,12 +530,12 @@ class BitgetExchange(ExchangePyBase):
     async def _update_balances(self):
         local_asset_names = set(self._account_balances.keys())
         remote_asset_names = set()
-        print("hello 1")
+
         account_info = await self._api_get(
             path_url=CONSTANTS.ACCOUNTS_PATH_URL,
             is_auth_required=True,
             headers={"Content-Type": "application/json"})
-        print("hello 222", account_info)
+
         self._account_available_balances = {}
         self._account_balances = {}
         remote_asset_names = set()
@@ -565,10 +565,13 @@ class BitgetExchange(ExchangePyBase):
             del self._account_balances[asset_name]
 
     def _initialize_trading_pair_symbols_from_exchange_info(self, exchange_info: Dict[str, Any]):
+        print("hello 1")
         mapping = bidict()
-        for symbol_data in filter(bitget_utils.is_exchange_information_valid, exchange_info["symbols"]):
-            mapping[symbol_data["symbol"]] = combine_to_hb_trading_pair(base=symbol_data["baseAsset"],
-                                                                        quote=symbol_data["quoteAsset"])
+        # print("hello 2", bitget_utils.is_exchange_information_valid)
+        # print("hello 2", exchange_info["data"])
+        for symbol_data in filter(bitget_utils.is_exchange_information_valid, exchange_info["data"]):
+            mapping[symbol_data["symbol"]] = combine_to_hb_trading_pair(base=symbol_data["baseCoin"],
+                                                                        quote=symbol_data["quoteCoin"])
         self._set_trading_pair_symbol_map(mapping)
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
@@ -589,7 +592,9 @@ class BitgetExchange(ExchangePyBase):
         await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
 
     async def _make_trading_rules_request(self) -> Any:
+        print("Duc _make_trading_rules_request 1")
         exchange_info = await self._api_get(path_url=self.trading_rules_request_path, headers={"Content-Type": "application/json"})
+        print("Duc _make_trading_rules_request 2")
         return exchange_info
 
     async def _make_trading_pairs_request(self) -> Any:

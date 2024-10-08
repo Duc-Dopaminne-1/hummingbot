@@ -8,16 +8,16 @@ MAX_ORDER_ID_LEN = 32
 
 # Base URLs
 REST_URL = "https://api.bitget.com"
-WSS_URL = "wss://ws.bitget.{}/spot/v1/stream"
+WSS_URL = "wss://ws.bitget.com/spot/v1/stream"
 
 # API Versions
 PUBLIC_API_VERSION = ""
 PRIVATE_API_VERSION = ""
 
 # Public API endpoints
-TICKER_PRICE_CHANGE_PATH_URL = "/market/ticker"
-SNAPSHOT_PATH_URL = "/market/depth"
-EXCHANGE_INFO_PATH_URL = "/public/products"
+TICKER_PRICE_CHANGE_PATH_URL = "/api/spot/v1/market/ticker"
+SNAPSHOT_PATH_URL = "/api/spot/v1/market/depth"
+EXCHANGE_INFO_PATH_URL = "/api/spot/v1/public/products"
 SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
 
 # Private API endpoints
