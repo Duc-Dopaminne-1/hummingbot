@@ -558,14 +558,14 @@ class BitgetExchange(ExchangePyBase):
             # Thêm tên tài sản vào tập hợp remote_asset_names
             remote_asset_names.add(asset_name)
 
-        print("hello 333")
+
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)
         for asset_name in asset_names_to_remove:
             del self._account_available_balances[asset_name]
             del self._account_balances[asset_name]
 
     def _initialize_trading_pair_symbols_from_exchange_info(self, exchange_info: Dict[str, Any]):
-        print("hello 1")
+
         mapping = bidict()
         # print("hello 2", bitget_utils.is_exchange_information_valid)
         # print("hello 2", exchange_info["data"])
@@ -575,10 +575,11 @@ class BitgetExchange(ExchangePyBase):
         self._set_trading_pair_symbol_map(mapping)
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
+        print("hello 33333")
         params = {
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
         }
-
+        print("hello 44444")
         resp_json = await self._api_request(
             method=RESTMethod.GET,
             path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL,
@@ -592,9 +593,9 @@ class BitgetExchange(ExchangePyBase):
         await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
 
     async def _make_trading_rules_request(self) -> Any:
-        print("Duc _make_trading_rules_request 1")
+
         exchange_info = await self._api_get(path_url=self.trading_rules_request_path, headers={"Content-Type": "application/json"})
-        print("Duc _make_trading_rules_request 2")
+
         return exchange_info
 
     async def _make_trading_pairs_request(self) -> Any:

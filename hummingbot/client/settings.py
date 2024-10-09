@@ -367,6 +367,7 @@ class AllConnectorSettings:
         """
         Iterate over files in specific Python directories to create a dictionary of exchange names to ConnectorSetting.
         """
+
         cls.all_connector_settings = {}  # reset
         connector_exceptions = ["mock_paper_exchange", "mock_pure_python_paper_exchange", "paper_trade"]
         # connector_exceptions = ["mock_paper_exchange", "mock_pure_python_paper_exchange", "paper_trade", "injective_v2", "injective_v2_perpetual"]
@@ -411,7 +412,7 @@ class AllConnectorSettings:
                     domain_parameter=None,
                     use_eth_gas_lookup=getattr(util_module, "USE_ETH_GAS_LOOKUP", False),
                 )
-                # Adds other domains of connector
+                 # Adds other domains of connector
                 other_domains = getattr(util_module, "OTHER_DOMAINS", [])
                 for domain in other_domains:
                     trade_fee_settings = getattr(util_module, "OTHER_DOMAINS_DEFAULT_FEES")[domain]
@@ -483,6 +484,7 @@ class AllConnectorSettings:
 
     @classmethod
     def get_connector_config_keys(cls, connector: str) -> Optional["BaseConnectorConfigMap"]:
+        # print("AAAAAA", cls.get_connector_settings()[connector].config_keys)
         return cls.get_connector_settings()[connector].config_keys
 
     @classmethod
@@ -496,6 +498,7 @@ class AllConnectorSettings:
 
     @classmethod
     def update_connector_config_keys(cls, new_config_keys: "BaseConnectorConfigMap"):
+
         current_settings = cls.get_connector_settings()[new_config_keys.connector]
         new_keys_settings_dict = current_settings._asdict()
         new_keys_settings_dict.update({"config_keys": new_config_keys})
@@ -516,6 +519,7 @@ class AllConnectorSettings:
 
     @classmethod
     def get_derivative_dex_names(cls) -> Set[str]:
+
         return {cs.name for cs in cls.all_connector_settings.values() if cs.type is ConnectorType.AMM_Perpetual}
 
     @classmethod
@@ -598,6 +602,7 @@ def gateway_connector_trading_pairs(connector: str) -> List[str]:
     """
     Returns trading pair used by specified gateway connnector.
     """
+
     ret_val = []
     for conn, t_pair in requried_connector_trading_pairs.items():
         if AllConnectorSettings.get_connector_settings()[conn].uses_gateway_generic_connector() and \

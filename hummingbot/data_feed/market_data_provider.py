@@ -92,6 +92,7 @@ class MarketDataProvider:
         :param connector_name: str
         :return: ConnectorBase
         """
+
         connector = self.connectors.get(connector_name)
         if not connector:
             raise ValueError(f"Connector {connector_name} not found.")

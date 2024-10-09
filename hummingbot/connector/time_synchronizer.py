@@ -61,7 +61,7 @@ class TimeSynchronizer:
 
         :param time_provider: Awaitable object that returns the current time
         """
-        print("last_exception 33")
+
         try:
             local_before_ms: float = self._current_seconds_counter() * 1e3
             server_time_ms: float = await time_provider

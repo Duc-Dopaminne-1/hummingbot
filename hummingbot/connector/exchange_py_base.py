@@ -852,13 +852,13 @@ class ExchangePyBase(ExchangeBase, ABC):
     # === Exchange / Trading logic methods that call the API ===
 
     async def _update_trading_rules(self):
-        print("Duc _make_trading_rules_request 3")
+
         exchange_info = await self._make_trading_rules_request()
-        print("Duc _make_trading_rules_request 4")
+
         trading_rules_list = await self._format_trading_rules(exchange_info)
-        print("Duc _make_trading_rules_request 5")
+
         self._trading_rules.clear()
-        print("Duc _make_trading_rules_request 6")
+
         for trading_rule in trading_rules_list:
             self._trading_rules[trading_rule.trading_pair] = trading_rule
         self._initialize_trading_pair_symbols_from_exchange_info(exchange_info=exchange_info)
@@ -905,9 +905,9 @@ class ExchangePyBase(ExchangeBase, ABC):
         rest_assistant = await self._web_assistants_factory.get_rest_assistant()
 
         url = overwrite_url or await self._api_request_url(path_url=path_url, is_auth_required=is_auth_required)
-        print("=== API Start 3 ===")
-        print(url)
-        print("=== API End 3 ===")
+        # print("=== API Start 3 ===")
+        # print(url)
+        # print("=== API End 3 ===")
         for _ in range(2):
             try:
                 request_result = await rest_assistant.execute_request(

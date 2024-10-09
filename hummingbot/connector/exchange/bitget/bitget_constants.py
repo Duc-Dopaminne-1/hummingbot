@@ -1,10 +1,11 @@
 from hummingbot.core.api_throttler.data_types import LinkedLimitWeightPair, RateLimit
 from hummingbot.core.data_type.in_flight_order import OrderState
 
-DEFAULT_DOMAIN = "com"
+DEFAULT_DOMAIN = ""
 
 HBOT_ORDER_ID_PREFIX = "HBOT"
 MAX_ORDER_ID_LEN = 32
+CANDLES_ENDPOINT = "/api/v2/spot/market/candles"
 
 # Base URLs
 REST_URL = "https://api.bitget.com"
@@ -22,8 +23,8 @@ SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
 
 # Private API endpoints
 ACCOUNTS_PATH_URL = "/api/v2/spot/account/assets"
-MY_TRADES_PATH_URL = "/trade/fills"
-ORDER_PATH_URL = "/trade/order"
+MY_TRADES_PATH_URL = "/api/spot/v1/market/fills"
+ORDER_PATH_URL = "/api/spot/v1/trade/orders"
 
 WS_HEARTBEAT_TIME_INTERVAL = 30
 
@@ -126,9 +127,9 @@ WS_ORDER_STATE = {
 DIFF_EVENT_TYPE = "depth"
 TRADE_EVENT_TYPE = "trade"
 
-USER_TRADES_ENDPOINT_NAME = "spot/fills"
-USER_ORDERS_ENDPOINT_NAME = "spot/order"
-USER_BALANCE_ENDPOINT_NAME = "spot/account"
+USER_TRADES_ENDPOINT_NAME =  "/api/spot/v1/market/fills"
+USER_ORDERS_ENDPOINT_NAME = "/api/spot/v1/trade/orders"
+USER_BALANCE_ENDPOINT_NAME = "/api/v2/spot/account/assets"
 WS_CONNECTION_TIME_INTERVAL = 20
 RATE_LIMITS = [
     RateLimit(limit_id=IP_REQUEST_RATE_LIMIT, limit=1200, time_interval=ONE_MINUTE),
