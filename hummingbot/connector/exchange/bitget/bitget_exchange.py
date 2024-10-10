@@ -528,6 +528,7 @@ class BitgetExchange(ExchangePyBase):
         return order_update
 
     async def _update_balances(self):
+
         local_asset_names = set(self._account_balances.keys())
         remote_asset_names = set()
 
@@ -542,6 +543,7 @@ class BitgetExchange(ExchangePyBase):
 
         # Lấy balances từ account_info
         balances = account_info["data"]
+
         # Duyệt qua từng phần tử của balances
         for balance_entry in balances:
             asset_name = balance_entry["coin"]  # Thay "asset" bằng "coin"
@@ -556,8 +558,8 @@ class BitgetExchange(ExchangePyBase):
             self._account_balances[asset_name] = total_balance
 
             # Thêm tên tài sản vào tập hợp remote_asset_names
-            remote_asset_names.add(asset_name)
 
+            remote_asset_names.add(asset_name)
 
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)
         for asset_name in asset_names_to_remove:

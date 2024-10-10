@@ -45,7 +45,6 @@ class RESTAssistant:
         timeout: Optional[float] = None,
         headers: Optional[Dict[str, Any]] = None,
     ) -> Union[str, Dict[str, Any]]:
-
         response = await self.execute_request_and_get_response(
             url=url,
             throttler_limit_id=throttler_limit_id,
@@ -97,7 +96,6 @@ class RESTAssistant:
             is_auth_required=is_auth_required,
             throttler_limit_id=throttler_limit_id
         )
-
         async with self._throttler.execute_task(limit_id=throttler_limit_id):
 
             response = await self.call(request=request, timeout=timeout)
@@ -126,6 +124,7 @@ class RESTAssistant:
         return resp
 
     async def _pre_process_request(self, request: RESTRequest) -> RESTRequest:
+
         for pre_processor in self._rest_pre_processors:
             request = await pre_processor.pre_process(request)
         return request

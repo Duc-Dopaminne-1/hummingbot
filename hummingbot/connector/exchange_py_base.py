@@ -910,6 +910,7 @@ class ExchangePyBase(ExchangeBase, ABC):
         # print("=== API End 3 ===")
         for _ in range(2):
             try:
+
                 request_result = await rest_assistant.execute_request(
                     url=url,
                     params=params,
@@ -920,8 +921,10 @@ class ExchangePyBase(ExchangeBase, ABC):
                     throttler_limit_id=limit_id if limit_id else path_url,
                     headers=headers,
                 )
+
                 return request_result
             except IOError as request_exception:
+
                 last_exception = request_exception
                 if self._is_request_exception_related_to_time_synchronizer(request_exception=request_exception):
                     self._time_synchronizer.clear_time_offset_ms_samples()

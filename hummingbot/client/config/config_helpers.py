@@ -663,9 +663,13 @@ async def load_strategy_config_map_from_file(yml_path: Path) -> Union[ClientConf
 
 
 def load_connector_config_map_from_file(yml_path: Path) -> ClientConfigAdapter:
+    print("0000" )
     config_data = read_yml_file(yml_path)
+    print("11111",config_data )
     connector_name = connector_name_from_file(yml_path)
+    print("2222",connector_name)
     hb_config = get_connector_hb_config(connector_name)
+    print("333",hb_config)
     config_map = ClientConfigAdapter(hb_config)
     _load_yml_data_into_map(config_data, config_map)
     return config_map

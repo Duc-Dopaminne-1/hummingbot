@@ -11,6 +11,9 @@ CANDLES_ENDPOINT = "/api/v2/spot/market/candles"
 REST_URL = "https://api.bitget.com"
 WSS_URL = "wss://ws.bitget.com/spot/v1/stream"
 
+PING_PATH_URL = "/ping"
+TICKER_BOOK_PATH_URL= ""
+
 # API Versions
 PUBLIC_API_VERSION = ""
 PRIVATE_API_VERSION = ""
@@ -20,7 +23,6 @@ TICKER_PRICE_CHANGE_PATH_URL = "/api/spot/v1/market/ticker"
 SNAPSHOT_PATH_URL = "/api/spot/v1/market/depth"
 EXCHANGE_INFO_PATH_URL = "/api/spot/v1/public/products"
 SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
-
 # Private API endpoints
 ACCOUNTS_PATH_URL = "/api/v2/spot/account/assets"
 MY_TRADES_PATH_URL = "/api/spot/v1/market/fills"

@@ -67,7 +67,10 @@ class TimeSynchronizer:
             server_time_ms: float = await time_provider
             local_after_ms: float = self._current_seconds_counter() * 1e3
             local_server_time_pre_image_ms: float = (local_before_ms + local_after_ms) / 2.0
-            time_offset_ms: float = server_time_ms - local_server_time_pre_image_ms
+            ## TODO BITGET  time_offset_ms: float = server_time_ms
+
+            time_offset_ms: float = float(server_time_ms) - float(local_server_time_pre_image_ms)
+
             self.add_time_offset_ms_sample(time_offset_ms)
         except asyncio.CancelledError:
             raise

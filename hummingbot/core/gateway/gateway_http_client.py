@@ -175,9 +175,9 @@ class GatewayHttpClient:
         client = self._http_client(self._client_config_map)
 
         parsed_response = {}
-        print("=== API Start 1 ===")
-        print(url)
-        print("=== API End 1 ===")
+        # print("=== API Start 1 ===")
+        # print(url)
+        # print("=== API End 1 ===")
 
         try:
             if method == "get":
