@@ -262,7 +262,7 @@ class BitgetExchange(ExchangePyBase):
         return retval
 
     async def _status_polling_loop_fetch_updates(self):
-        await self._update_order_fills_from_trades()
+        # await self._update_order_fills_from_trades()
         await super()._status_polling_loop_fetch_updates()
 
     async def _update_trading_fees(self):
@@ -579,7 +579,8 @@ class BitgetExchange(ExchangePyBase):
     async def _get_last_traded_price(self, trading_pair: str) -> float:
         print("hello 33333")
         params = {
-            "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+            # "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+            "symbol": trading_pair.replace("-", "")
         }
         print("hello 44444")
         resp_json = await self._api_request(
@@ -589,10 +590,11 @@ class BitgetExchange(ExchangePyBase):
             headers={"Content-Type": "application/json"}
         )
 
-        return float(resp_json["lastPrice"])
+
+        return float(resp_json['data'][0]['lastPr'])
 
     async def _make_network_check_request(self):
-        await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
+        # await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
 
     async def _make_trading_rules_request(self) -> Any:
 

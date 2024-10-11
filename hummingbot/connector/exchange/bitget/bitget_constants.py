@@ -19,7 +19,7 @@ PUBLIC_API_VERSION = ""
 PRIVATE_API_VERSION = ""
 
 # Public API endpoints
-TICKER_PRICE_CHANGE_PATH_URL = "/api/spot/v1/market/ticker"
+TICKER_PRICE_CHANGE_PATH_URL = "/api/v2/spot/market/tickers"
 SNAPSHOT_PATH_URL = "/api/spot/v1/market/depth"
 EXCHANGE_INFO_PATH_URL = "/api/spot/v1/public/products"
 SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
