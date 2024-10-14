@@ -48,7 +48,7 @@ class BitgetExchange(ExchangePyBase):
         self.bitget_passphrase = bitget_passphrase
         self._domain = domain
         self._trading_required = trading_required
-        self._trading_pairs = trading_pairs
+        self._trading_pairs = trading_pairs ## TODO revert nha => trading_pairs or SOLUSDT
         self._last_trades_poll_bitget_timestamp = 1.0
         super().__init__(client_config_map)
 
@@ -415,8 +415,10 @@ class BitgetExchange(ExchangePyBase):
                         app_warning_msg=f"Failed to fetch trade update for {trading_pair}."
                     )
                     continue
+
+
                 for trade in trades:
-                    exchange_order_id = str(trade["orderId"])
+                    exchange_order_id = str(trade["tradeId"])
                     if exchange_order_id in order_by_exchange_id_map:
                         # This is a fill for a tracked order
                         tracked_order = order_by_exchange_id_map[exchange_order_id]
@@ -483,7 +485,7 @@ class BitgetExchange(ExchangePyBase):
                 headers={"Content-Type": "application/json"})
 
             for trade in all_fills_response:
-                exchange_order_id = str(trade["orderId"])
+                exchange_order_id = str(trade["tradeId"])
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
@@ -589,10 +591,11 @@ class BitgetExchange(ExchangePyBase):
             headers={"Content-Type": "application/json"}
         )
 
-        return float(resp_json["lastPrice"])
+        return float(resp_json['data'][0]['lastPr'])
 
     async def _make_network_check_request(self):
-        await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
+        pass
+        # await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
 
     async def _make_trading_rules_request(self) -> Any:
 

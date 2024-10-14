@@ -19,15 +19,15 @@ PUBLIC_API_VERSION = ""
 PRIVATE_API_VERSION = ""
 
 # Public API endpoints
-TICKER_PRICE_CHANGE_PATH_URL = "/api/spot/v1/market/ticker"
+TICKER_PRICE_CHANGE_PATH_URL = "/api/v2/spot/market/tickers"
 SNAPSHOT_PATH_URL = "/api/spot/v1/market/depth"
 EXCHANGE_INFO_PATH_URL = "/api/spot/v1/public/products"
 SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
 # Private API endpoints
 ACCOUNTS_PATH_URL = "/api/v2/spot/account/assets"
-MY_TRADES_PATH_URL = "/api/spot/v1/market/fills"
+MY_TRADES_PATH_URL = "/api/v2/spot/trade/fills"
 ORDER_PATH_URL = "/api/spot/v1/trade/orders"
-
+Bitget_USER_STREAM_PATH_URL = "/userDataStream"
 WS_HEARTBEAT_TIME_INTERVAL = 30
 
 # Bitget parameters
