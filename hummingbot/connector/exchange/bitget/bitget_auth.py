@@ -73,4 +73,4 @@ class BitgetAuth(AuthBase):
     def _pre_hash(timestamp: str, method: str, request_path: str, body: str):
         if body in ["None", "null"]:
             body = ""
-        return str(timestamp) + method.upper() + request_path + body
+        return str(timestamp) + str(method).upper() + str(request_path) + str(body)

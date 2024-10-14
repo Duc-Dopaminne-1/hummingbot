@@ -398,11 +398,20 @@ class BitgetExchange(ExchangePyBase):
                 }
                 if self._last_poll_timestamp > 0:
                     params["startTime"] = query_time
+                headers = {}
+                headers["Content-Type"] = "application/json"
+                headers["ACCESS-KEY"] = self.api_key
+                headers["ACCESS-TIMESTAMP"] = str(int(self._time_synchronizer.time() * 1e3))
+                headers["ACCESS-PASSPHRASE"] = self.bitget_passphrase
+                headers["ACCESS-SIGN"] = BitgetAuth._sign(
+                    BitgetAuth._pre_hash(headers["ACCESS-TIMESTAMP"], "GET", CONSTANTS.MY_TRADES_PATH_URL, params),
+                    self.secret_key
+                )
                 tasks.append(self._api_get(
                     path_url=CONSTANTS.MY_TRADES_PATH_URL,
                     params=params,
                     is_auth_required=True,
-                    headers={"Content-Type": "application/json"}))
+                    headers=headers))
 
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
@@ -474,15 +483,26 @@ class BitgetExchange(ExchangePyBase):
         if order.exchange_order_id is not None:
             exchange_order_id = order.exchange_order_id
             trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
+            headers = {}
+            headers["Content-Type"] = "application/json"
+            headers["ACCESS-KEY"] = self.api_key
+            headers["ACCESS-TIMESTAMP"] = str(int(self._time_synchronizer.time() * 1e3))
+            headers["ACCESS-PASSPHRASE"] = self.bitget_passphrase
+            payload={
+                "symbol": trading_pair,
+                "orderId": exchange_order_id
+            }
+            headers["ACCESS-SIGN"] = BitgetAuth._sign(
+                BitgetAuth._pre_hash(headers["ACCESS-TIMESTAMP"], "GET", CONSTANTS.MY_TRADES_PATH_URL, payload),
+                self.secret_key
+            )
             all_fills_response = await self._api_get(
                 path_url=CONSTANTS.MY_TRADES_PATH_URL,
-                params={
-                    "symbol": trading_pair,
-                    "orderId": exchange_order_id
-                },
+                params=payload,
                 is_auth_required=True,
                 limit_id=CONSTANTS.MY_TRADES_PATH_URL,
-                headers={"Content-Type": "application/json"})
+                headers=headers
+            )
 
             for trade in all_fills_response:
                 exchange_order_id = str(trade["tradeId"])
