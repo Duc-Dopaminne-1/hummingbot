@@ -95,7 +95,7 @@ class BitgetAPIUserStreamDataSource(UserStreamTrackerDataSource):
                 url=web_utils.public_rest_url(path_url=CONSTANTS.Bitget_USER_STREAM_PATH_URL, domain=self._domain),
                 method=RESTMethod.POST,
                 throttler_limit_id=CONSTANTS.Bitget_USER_STREAM_PATH_URL,
-                headers=self._auth.header_for_authentication(),
+                headers=self.header_for_authentication(self, RESTMethod.POST, CONSTANTS.Bitget_USER_STREAM_PATH_URL),
                 is_auth_required=True
             )
         except asyncio.CancelledError:
@@ -114,7 +114,7 @@ class BitgetAPIUserStreamDataSource(UserStreamTrackerDataSource):
                 method=RESTMethod.PUT,
                 return_err=True,
                 throttler_limit_id=CONSTANTS.Bitget_USER_STREAM_PATH_URL,
-                headers=self._auth.header_for_authentication()
+                headers=self.header_for_authentication(self, RESTMethod.PUT, CONSTANTS.Bitget_USER_STREAM_PATH_URL)
             )
 
             if "code" in data:
@@ -182,3 +182,15 @@ class BitgetAPIUserStreamDataSource(UserStreamTrackerDataSource):
             except asyncio.TimeoutError:
                 ping_request = WSJSONRequest(payload={"method": "PING"})
                 await websocket_assistant.send(ping_request)
+
+    def header_for_authentication(self, method, path, params):
+        headers = {}
+        headers["Content-Type"] = "application/json"
+        headers["ACCESS-KEY"] = self._auth._api_key
+        headers["ACCESS-TIMESTAMP"] = str(int(time.time() * 1e3))
+        headers["ACCESS-PASSPHRASE"] = self._auth._passphrase
+        headers["ACCESS-SIGN"] = BitgetAuth._sign(
+            BitgetAuth._pre_hash(headers["ACCESS-TIMESTAMP"], method, path, params),
+            self._auth._secret_key
+        )
+        return headers
