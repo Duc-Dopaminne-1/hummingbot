@@ -29,6 +29,11 @@ from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFa
 if TYPE_CHECKING:
     from hummingbot.client.config.config_helpers import ClientConfigAdapter
 
+
+def _symbol_and_product_type(full_symbol: str) -> str:
+    return full_symbol.split(CONSTANTS.SYMBOL_AND_PRODUCT_TYPE_SEPARATOR)
+
+
 class BitgetExchange(ExchangePyBase):
     UPDATE_ORDER_STATUS_MIN_INTERVAL = 10.0
 
@@ -468,6 +473,10 @@ class BitgetExchange(ExchangePyBase):
                                 exchange_trade_id=str(trade["id"])
                             ))
                         self.logger().info(f"Recreating missing trade in TradeFill: {trade}")
+
+    async def product_type_for_trading_pair(self, trading_pair: str) -> str:
+        full_symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+        return _symbol_and_product_type(full_symbol=full_symbol)[-1]
 
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
