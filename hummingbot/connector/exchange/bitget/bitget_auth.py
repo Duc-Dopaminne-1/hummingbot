@@ -1,7 +1,7 @@
 import base64
 import hmac
+import time
 from typing import Any, Dict, List
-from urllib.parse import urlencode
 
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
 from hummingbot.core.web_assistant.auth import AuthBase
@@ -22,7 +22,7 @@ class BitgetAuth(AuthBase):
         headers = {}
         headers["Content-Type"] = "application/json"
         headers["ACCESS-KEY"] = self._api_key
-        headers["ACCESS-TIMESTAMP"] = str(int(self._time_provider.time() * 1e3))
+        headers["ACCESS-TIMESTAMP"] = str(int(time.time() * 1000))
         headers["ACCESS-PASSPHRASE"] = self._passphrase
         # headers["locale"] = "en-US"
         path = request.throttler_limit_id
@@ -65,9 +65,8 @@ class BitgetAuth(AuthBase):
     @staticmethod
     def _sign(message, secret_key):
         mac = hmac.new(bytes(secret_key, encoding='utf8'), bytes(message, encoding='utf-8'), digestmod='sha256')
-
         d = mac.digest()
-        return base64.b64encode(d).decode().strip()
+        return str(base64.b64encode(d), 'utf8')
 
     @staticmethod
     def _pre_hash(timestamp: str, method: str, request_path: str, body: str):

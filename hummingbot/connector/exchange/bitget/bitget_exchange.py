@@ -29,6 +29,11 @@ from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFa
 if TYPE_CHECKING:
     from hummingbot.client.config.config_helpers import ClientConfigAdapter
 
+
+def _symbol_and_product_type(full_symbol: str) -> str:
+    return full_symbol.split(CONSTANTS.SYMBOL_AND_PRODUCT_TYPE_SEPARATOR)
+
+
 class BitgetExchange(ExchangePyBase):
     UPDATE_ORDER_STATUS_MIN_INTERVAL = 10.0
 
@@ -150,6 +155,11 @@ class BitgetExchange(ExchangePyBase):
             connector=self,
             domain=self.domain,
             api_factory=self._web_assistants_factory)
+
+    async def product_type_for_trading_pair(self, trading_pair: str) -> str:
+        full_symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+        print("22222 full_symbol", full_symbol)
+        return _symbol_and_product_type(full_symbol=full_symbol)[-1]
 
     def _create_user_stream_data_source(self) -> UserStreamTrackerDataSource:
         return BitgetAPIUserStreamDataSource(
@@ -394,7 +404,7 @@ class BitgetExchange(ExchangePyBase):
             trading_pairs = self.trading_pairs
             for trading_pair in trading_pairs:
                 params = {
-                    "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+                    "symbol":  "SOL-USDT"
                 }
                 if self._last_poll_timestamp > 0:
                     params["startTime"] = query_time
@@ -404,6 +414,10 @@ class BitgetExchange(ExchangePyBase):
                     is_auth_required=True,
                     headers={"Content-Type": "application/json"}))
 
+            self.logger().network(
+                f" AAAAAA Error fetching trades update for the order {params}.",
+                app_warning_msg=f" AAAAA A Failed to fetch trade update for {params}."
+            )
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
 

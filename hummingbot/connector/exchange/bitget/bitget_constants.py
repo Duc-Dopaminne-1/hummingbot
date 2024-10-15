@@ -9,8 +9,9 @@ CANDLES_ENDPOINT = "/api/v2/spot/market/candles"
 
 # Base URLs
 REST_URL = "https://api.bitget.com"
-WSS_URL = "wss://ws.bitget.com/spot/v1/stream"
-
+# WSS_URL = "wss://ws.bitget.com/spot/v1/stream"
+WSS_URL = "wss://ws.bitget.com/mix/v1/stream"
+SECONDS_TO_WAIT_TO_RECEIVE_MESSAGE = 20
 PING_PATH_URL = "/ping"
 TICKER_BOOK_PATH_URL= ""
 
@@ -104,16 +105,6 @@ UNKNOWN_ORDER_MESSAGE = "Unknown order"
 TIMESTAMP_RELATED_ERROR_CODE = "40007"
 TIMESTAMP_RELATED_ERROR_MESSAGE = "Timestamp expired"
 
-# Order States
-ORDER_STATE = {
-    "new": OrderState.OPEN,
-    "partially_filled": OrderState.PARTIALLY_FILLED,
-    "filled": OrderState.FILLED,
-    "canceled": OrderState.CANCELED,
-    "rejected": OrderState.FAILED,
-    "expired": OrderState.FAILED,
-}
-
 # WebSocket Order States
 WS_ORDER_STATE = {
     "1": OrderState.OPEN,
@@ -132,6 +123,7 @@ TRADE_EVENT_TYPE = "trade"
 USER_TRADES_ENDPOINT_NAME =  "/api/spot/v1/market/fills"
 USER_ORDERS_ENDPOINT_NAME = "/api/spot/v1/trade/orders"
 USER_BALANCE_ENDPOINT_NAME = "/api/v2/spot/account/assets"
+SYMBOL_AND_PRODUCT_TYPE_SEPARATOR = "_"
 WS_CONNECTION_TIME_INTERVAL = 20
 RATE_LIMITS = [
     RateLimit(limit_id=IP_REQUEST_RATE_LIMIT, limit=1200, time_interval=ONE_MINUTE),
@@ -180,4 +172,35 @@ RATE_LIMITS = [
         linked_limits=[LinkedLimitWeightPair(UID_REQUEST_RATE_LIMIT, 1)]
     ),
 ]
+
+
+# WebSocket Public Endpoints
+WS_PING_REQUEST = "ping"
+WS_PONG_RESPONSE = "pong"
+WS_ORDER_BOOK_EVENTS_TOPIC = "books"
+WS_TRADES_TOPIC = "trade"
+WS_INSTRUMENTS_INFO_TOPIC = "tickers"
+WS_AUTHENTICATE_USER_ENDPOINT_NAME = "login"
+WS_SUBSCRIPTION_POSITIONS_ENDPOINT_NAME = "positions"
+WS_SUBSCRIPTION_ORDERS_ENDPOINT_NAME = "orders"
+WS_SUBSCRIPTION_WALLET_ENDPOINT_NAME = "account"
+
+# Order Statuses
+ORDER_STATE = {
+    "new": OrderState.OPEN,
+    "filled": OrderState.FILLED,
+    "full-fill": OrderState.FILLED,
+    "partial-fill": OrderState.PARTIALLY_FILLED,
+    "partially_filled": OrderState.PARTIALLY_FILLED,
+    "canceled": OrderState.CANCELED,
+    "cancelled": OrderState.CANCELED,
+}
+
+# Request error codes
+RET_CODE_OK = "00000"
+RET_CODE_PARAMS_ERROR = "40007"
+RET_CODE_API_KEY_INVALID = "40006"
+RET_CODE_AUTH_TIMESTAMP_ERROR = "40005"
+RET_CODE_ORDER_NOT_EXISTS = "43025"
+RET_CODE_API_KEY_EXPIRED = "40014"
 

@@ -903,7 +903,8 @@ class ExchangePyBase(ExchangeBase, ABC):
 
         last_exception = None
         rest_assistant = await self._web_assistants_factory.get_rest_assistant()
-
+        self.logger().info(f"2222222 111: {path_url} {params} {headers}")
+        print("222222", path_url)
         url = overwrite_url or await self._api_request_url(path_url=path_url, is_auth_required=is_auth_required)
         # print("=== API Start 3 ===")
         # print(url)
