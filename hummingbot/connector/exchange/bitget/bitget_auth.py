@@ -1,11 +1,20 @@
 import base64
+import hashlib
 import hmac
+import time
 from typing import Any, Dict, List
 from urllib.parse import urlencode
 
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
 from hummingbot.core.web_assistant.auth import AuthBase
 from hummingbot.core.web_assistant.connections.data_types import RESTMethod, RESTRequest, WSRequest
+
+
+def create_signature(timestamp, method, request_path, secret_key, body=""):
+    prehash_string = timestamp + method + request_path + body
+    hmac_key = hmac.new(secret_key.encode(), prehash_string.encode(), hashlib.sha256)
+    signature = base64.b64encode(hmac_key.digest()).decode()
+    return signature
 
 
 class BitgetAuth(AuthBase):
@@ -22,17 +31,25 @@ class BitgetAuth(AuthBase):
         headers = {}
         headers["Content-Type"] = "application/json"
         headers["ACCESS-KEY"] = self._api_key
-        headers["ACCESS-TIMESTAMP"] = str(int(self._time_provider.time() * 1e3))
+        headers["ACCESS-TIMESTAMP"] = str(int(time.time() * 1000))
         headers["ACCESS-PASSPHRASE"] = self._passphrase
         # headers["locale"] = "en-US"
         path = request.throttler_limit_id
+        # TODO check cho nay
+
+        if request.method is RESTMethod.GET and request.params:
+            print("444444", request.params)
+            print("5555", urlencode(request.params))
+            path += "?" + urlencode(request.params)
 
         payload = str(request.data)
 
-        headers["ACCESS-SIGN"] = self._sign(
-            self._pre_hash(headers["ACCESS-TIMESTAMP"], request.method.value, path, payload),
-            self._secret_key)
-        print(headers)
+        headers["ACCESS-SIGN"] = create_signature(
+            headers["ACCESS-TIMESTAMP"],
+             request.method.value,
+             path,
+              self._secret_key)
+        print("quai 22222", headers)
         request.headers.update(headers)
         print("rest_authenticate headers", headers)
         return request
@@ -65,9 +82,8 @@ class BitgetAuth(AuthBase):
     @staticmethod
     def _sign(message, secret_key):
         mac = hmac.new(bytes(secret_key, encoding='utf8'), bytes(message, encoding='utf-8'), digestmod='sha256')
-
         d = mac.digest()
-        return base64.b64encode(d).decode().strip()
+        return str(base64.b64encode(d), 'utf8')
 
     @staticmethod
     def _pre_hash(timestamp: str, method: str, request_path: str, body: str):

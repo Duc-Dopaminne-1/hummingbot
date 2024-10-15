@@ -48,7 +48,7 @@ class BitgetExchange(ExchangePyBase):
         self.bitget_passphrase = bitget_passphrase
         self._domain = domain
         self._trading_required = trading_required
-        self._trading_pairs = trading_pairs ## TODO revert nha => trading_pairs or SOLUSDT
+        self._trading_pairs = [symbol.replace("-", "") for symbol in trading_pairs]
         self._last_trades_poll_bitget_timestamp = 1.0
         super().__init__(client_config_map)
 
@@ -394,11 +394,11 @@ class BitgetExchange(ExchangePyBase):
             trading_pairs = self.trading_pairs
             for trading_pair in trading_pairs:
                 params = {
-                    "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
-                }
-                if self._last_poll_timestamp > 0:
-                    params["startTime"] = query_time
-                tasks.append(self._api_get(
+                 "symbol": trading_pair
+               }
+            if self._last_poll_timestamp > 0:
+             params["startTime"] = query_time
+             tasks.append(self._api_get(
                     path_url=CONSTANTS.MY_TRADES_PATH_URL,
                     params=params,
                     is_auth_required=True,
@@ -579,11 +579,11 @@ class BitgetExchange(ExchangePyBase):
         self._set_trading_pair_symbol_map(mapping)
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
-        print("hello 33333")
+
         params = {
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
         }
-        print("hello 44444")
+
         resp_json = await self._api_request(
             method=RESTMethod.GET,
             path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL,
