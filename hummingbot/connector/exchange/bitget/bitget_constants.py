@@ -29,6 +29,7 @@ MY_TRADES_PATH_URL = "/api/v2/spot/trade/fills"
 ORDER_PATH_URL = "/api/spot/v1/trade/orders"
 Bitget_USER_STREAM_PATH_URL = "/userDataStream"
 WS_HEARTBEAT_TIME_INTERVAL = 30
+SECONDS_TO_WAIT_TO_RECEIVE_MESSAGE = 20
 
 # Bitget parameters
 SIDE_BUY = "buy"
