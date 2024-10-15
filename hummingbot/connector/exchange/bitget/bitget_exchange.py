@@ -48,7 +48,7 @@ class BitgetExchange(ExchangePyBase):
         self.bitget_passphrase = bitget_passphrase
         self._domain = domain
         self._trading_required = trading_required
-        self._trading_pairs = [symbol.replace("-", "") for symbol in trading_pairs]
+        self._trading_pairs = trading_pairs
         self._last_trades_poll_bitget_timestamp = 1.0
         super().__init__(client_config_map)
 
@@ -393,6 +393,7 @@ class BitgetExchange(ExchangePyBase):
             tasks = []
             trading_pairs = self.trading_pairs
             for trading_pair in trading_pairs:
+                trading_pair = trading_pair.replace("-", "")
                 params = {
                  "symbol": trading_pair
                }
