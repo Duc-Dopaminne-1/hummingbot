@@ -40,6 +40,7 @@ class BitgetOrderBook(OrderBook):
         :param metadata: a dictionary with extra information to add to the difference data
         :return: a diff message with the changes in the order book notified by the exchange
         """
+        print('metadata ---> ', str(metadata))
         if metadata:
             msg.update(metadata)
         return OrderBookMessage(OrderBookMessageType.DIFF, {

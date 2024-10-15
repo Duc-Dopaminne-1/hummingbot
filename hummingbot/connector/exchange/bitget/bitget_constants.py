@@ -94,6 +94,12 @@ RATE_LIMITS = [
         time_interval=ONE_MINUTE,
         linked_limits=[LinkedLimitWeightPair(UID_REQUEST_RATE_LIMIT, 1)],
     ),
+    RateLimit(
+        limit_id=Bitget_USER_STREAM_PATH_URL,
+        limit=30,
+        time_interval=ONE_MINUTE,
+        linked_limits=[LinkedLimitWeightPair(UID_REQUEST_RATE_LIMIT, 1)],
+    ),
 ]
 
 # Error Codes and Messages

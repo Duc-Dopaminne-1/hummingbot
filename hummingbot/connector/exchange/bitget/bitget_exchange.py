@@ -407,6 +407,14 @@ class BitgetExchange(ExchangePyBase):
                     BitgetAuth._pre_hash(headers["ACCESS-TIMESTAMP"], "GET", CONSTANTS.MY_TRADES_PATH_URL, params),
                     self.secret_key
                 )
+                print('headers ---> ', headers)
+                test_res = await self._api_get(
+                    path_url=CONSTANTS.MY_TRADES_PATH_URL,
+                    params=params,
+                    is_auth_required=True,
+                    headers=headers
+                )
+                print('test_res ---> ', test_res)
                 tasks.append(self._api_get(
                     path_url=CONSTANTS.MY_TRADES_PATH_URL,
                     params=params,
@@ -415,6 +423,7 @@ class BitgetExchange(ExchangePyBase):
 
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
+            print('results ---> ', results)
 
             for trades, trading_pair in zip(results, trading_pairs):
 
@@ -599,11 +608,9 @@ class BitgetExchange(ExchangePyBase):
         self._set_trading_pair_symbol_map(mapping)
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
-        print("hello 33333")
         params = {
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
         }
-        print("hello 44444")
         resp_json = await self._api_request(
             method=RESTMethod.GET,
             path_url=CONSTANTS.TICKER_PRICE_CHANGE_PATH_URL,

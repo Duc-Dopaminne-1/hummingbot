@@ -189,6 +189,8 @@ class BitgetAPIUserStreamDataSource(UserStreamTrackerDataSource):
         headers["ACCESS-KEY"] = self._auth._api_key
         headers["ACCESS-TIMESTAMP"] = str(int(time.time() * 1e3))
         headers["ACCESS-PASSPHRASE"] = self._auth._passphrase
+        if params in ["None", "null"]:
+            params = ""
         headers["ACCESS-SIGN"] = BitgetAuth._sign(
             BitgetAuth._pre_hash(headers["ACCESS-TIMESTAMP"], method, path, params),
             self._auth._secret_key

@@ -32,9 +32,7 @@ class BitgetAuth(AuthBase):
         headers["ACCESS-SIGN"] = self._sign(
             self._pre_hash(headers["ACCESS-TIMESTAMP"], request.method.value, path, payload),
             self._secret_key)
-        print(headers)
         request.headers.update(headers)
-        print("rest_authenticate headers", headers)
         return request
 
     async def ws_authenticate(self, request: WSRequest) -> WSRequest:
@@ -73,4 +71,5 @@ class BitgetAuth(AuthBase):
     def _pre_hash(timestamp: str, method: str, request_path: str, body: str):
         if body in ["None", "null"]:
             body = ""
+        print('request_path -----> ', request_path)
         return str(timestamp) + str(method).upper() + str(request_path) + str(body)
