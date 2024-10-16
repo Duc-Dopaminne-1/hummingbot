@@ -425,12 +425,8 @@ class BitgetExchange(ExchangePyBase):
 
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
-            self.logger().error(f"U5555555555 {results}")
-            self.logger().error(f"66666666666 {trading_pairs}")
-            print("U5555555555", results)
-            print("66666666666", trading_pairs)
-            for trades, trading_pair in zip(results.data, trading_pairs):
-
+            data = results[0]["data"] if len(results) > 0 and "data" in results[0] else []
+            for trades, trading_pair in zip(data, trading_pairs):
                 if isinstance(trades, Exception):
                     self.logger().network(
                         f"Error fetching trades update for the order {trading_pair}: {trades}.",
