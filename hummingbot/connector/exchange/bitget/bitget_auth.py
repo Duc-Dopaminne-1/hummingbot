@@ -41,14 +41,10 @@ class BitgetAuth(AuthBase):
             print("444444", request.params)
             print("5555", urlencode(request.params))
             path += "?" + urlencode(request.params)
-
         payload = str(request.data)
-
-        headers["ACCESS-SIGN"] = create_signature(
-            headers["ACCESS-TIMESTAMP"],
-             request.method.value,
-             path,
-              self._secret_key)
+        headers["ACCESS-SIGN"] = self._sign(
+            self._pre_hash(headers["ACCESS-TIMESTAMP"], request.method.value, path, payload),
+            self._secret_key)
         print("quai 22222", headers)
         request.headers.update(headers)
         print("rest_authenticate headers", headers)

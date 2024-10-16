@@ -75,10 +75,11 @@ class BitgetExchange(ExchangePyBase):
 
     @property
     def name(self) -> str:
-        if self._domain == "com":
-            return "bitget"
-        else:
-            return f"bitget_{self._domain}"
+        return "bitget"
+        # if self._domain == "com":
+        #     return "bitget"
+        # else:
+        #     return f"bitget_{self._domain}"
 
     @property
     def rate_limits_rules(self):
@@ -193,7 +194,9 @@ class BitgetExchange(ExchangePyBase):
         api_params = {"symbol": symbol,
                       "side": side_str,
                       "quantity": amount_str,
+                      "force": "normal",
                       # "quoteOrderQty": amount_str,
+                      "orderType": "limit" if order_type.is_limit_type() else "market",
                       "type": type_str,
                       "newClientOrderId": order_id}
         if order_type.is_limit_type():
@@ -213,6 +216,8 @@ class BitgetExchange(ExchangePyBase):
                 })
         if order_type == OrderType.LIMIT:
             api_params["timeInForce"] = CONSTANTS.TIME_IN_FORCE_GTC
+
+        self.logger().info(f"api_params = {api_params}")
 
         try:
             order_result = await self._api_post(
@@ -247,15 +252,21 @@ class BitgetExchange(ExchangePyBase):
         return False
 
     async def _format_trading_rules(self, exchange_info_dict: Dict[str, Any]) -> List[TradingRule]:
-        trading_pair_rules = exchange_info_dict.get("symbols", [])
+        trading_pair_rules = exchange_info_dict.get("data", [])
         retval = []
         for rule in filter(bitget_utils.is_exchange_information_valid, trading_pair_rules):
             try:
                 trading_pair = await self.trading_pair_associated_to_exchange_symbol(symbol=rule.get("symbol"))
-                min_order_size = Decimal(rule.get("baseSizePrecision"))
+                min_order_size = Decimal(rule.get("minTradeAmount"))
                 min_price_inc = Decimal(f"1e-{rule['quotePrecision']}")
-                min_amount_inc = Decimal(f"1e-{rule['baseAssetPrecision']}")
-                min_notional = Decimal(rule['quoteAmountPrecision'])
+                min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
+                min_notional = Decimal(rule['minTradeUSDT'])
+                #
+                # min_order_size = Decimal(f"1e-{rule.get('quantityScale')}")
+                # min_price_inc = Decimal(f"1e-{rule['priceScale']}")
+                # min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
+                # min_notional = Decimal(rule['minTradeUSDT'])
+
                 retval.append(
                     TradingRule(trading_pair,
                                 min_order_size=min_order_size,
