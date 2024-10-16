@@ -81,6 +81,7 @@ class BitgetAPIUserStreamDataSource(UserStreamTrackerDataSource):
             product_types = set([await self._connector.product_type_for_trading_pair(trading_pair=trading_pair)
                                  for trading_pair in self._trading_pairs])
             subscription_payloads = []
+            self.logger().info(f"333333333 {product_types}")
 
             for product_type in product_types:
                 subscription_payloads.append(

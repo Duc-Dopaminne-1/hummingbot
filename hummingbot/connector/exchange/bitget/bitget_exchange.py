@@ -185,6 +185,7 @@ class BitgetExchange(ExchangePyBase):
                            price: Decimal,
                            **kwargs) -> Tuple[str, float]:
         order_result = None
+        self.logger().debug(f"0000000000000 _place_order")
         amount_str = f"{amount:f}"
         type_str = BitgetExchange.bitget_order_type(order_type)
         side_str = CONSTANTS.SIDE_BUY if trade_type is TradeType.BUY else CONSTANTS.SIDE_SELL
@@ -278,35 +279,47 @@ class BitgetExchange(ExchangePyBase):
 
     async def _user_stream_event_listener(self):
         """
-        Listens to messages from _user_stream_tracker.user_stream queue.
-        Traders, Orders, and Balance updates from the WS.
+        Listens to message in _user_stream_tracker.user_stream queue.
         """
-        user_channels = [
-            CONSTANTS.USER_TRADES_ENDPOINT_NAME,
-            CONSTANTS.USER_ORDERS_ENDPOINT_NAME,
-            CONSTANTS.USER_BALANCE_ENDPOINT_NAME,
-        ]
         async for event_message in self._iter_user_event_queue():
             try:
-                channel: str = event_message.get("c", None)
-                results: Dict[str, Any] = event_message.get("d", {})
-                if "code" not in event_message and channel not in user_channels:
-                    self.logger().error(
-                        f"Unexpected message in user stream: {event_message}.", exc_info=True)
-                    continue
-                if channel == CONSTANTS.USER_TRADES_ENDPOINT_NAME:
-                    self._process_trade_message(results)
-                elif channel == CONSTANTS.USER_ORDERS_ENDPOINT_NAME:
-                    self._process_order_message(event_message)
-                elif channel == CONSTANTS.USER_BALANCE_ENDPOINT_NAME:
-                    self._process_balance_message_ws(results)
+                # In case the message is a simple string like "pong"
+                if isinstance(event_message, str):
+                    if event_message == "pong":
+                        # You can log the pong or simply continue
+                        self.logger().info("Received pong message, continuing...")
+                        continue
 
+                self.logger().info(f"DDDDD {event_message}")
+                print("DDDDD", event_message)
+                endpoint = event_message["arg"]["channel"]
+                payload = event_message["data"]
+
+                if endpoint == CONSTANTS.WS_SUBSCRIPTION_ORDERS_ENDPOINT_NAME:
+                    for order_msg in payload:
+                        self._process_trade_event_message(order_msg)
+                        self._process_order_event_message(order_msg)
+                        self._process_balance_update_from_order_event(order_msg)
+                elif endpoint == CONSTANTS.WS_SUBSCRIPTION_WALLET_ENDPOINT_NAME:
+                    for wallet_msg in payload:
+                        self._process_spot_event_message(wallet_msg)
             except asyncio.CancelledError:
                 raise
             except Exception:
-                self.logger().error(
-                    "Unexpected error in user stream listener loop.", exc_info=True)
-                await self._sleep(5.0)
+                self.logger().exception("Unexpected error in user stream listener loop.")
+
+    def _process_spot_event_message(self, spot_msg: Dict[str, Any]):
+        self.logger().debug(f"CCCCCCCCCCCCCCCCC {spot_msg}")
+        print("CCCCCCCCCCCCCCCCC", spot_msg)
+        coin_name = spot_msg.get("coinName", None)  # This is the name of the asset (e.g., USDT, BTC)
+        if coin_name is not None:
+            available = Decimal(str(spot_msg["available"]))  # Available balance
+            frozen = Decimal(str(spot_msg["frozen"]))  # Frozen balance (in open orders)
+            total = available + frozen  # Total balance (available + frozen)
+
+            # Update the balance in the account dictionary
+            self._account_balances[coin_name] = total
+            self._account_available_balances[coin_name] = available
 
     def _process_balance_message_ws(self, account):
         asset_name = account["a"]
@@ -412,8 +425,11 @@ class BitgetExchange(ExchangePyBase):
 
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
-
-            for trades, trading_pair in zip(results, trading_pairs):
+            self.logger().error(f"U5555555555 {results}")
+            self.logger().error(f"66666666666 {trading_pairs}")
+            print("U5555555555", results)
+            print("66666666666", trading_pairs)
+            for trades, trading_pair in zip(results.data, trading_pairs):
 
                 if isinstance(trades, Exception):
                     self.logger().network(
@@ -422,11 +438,14 @@ class BitgetExchange(ExchangePyBase):
                     )
                     continue
 
-
                 for trade in trades:
+                    if not isinstance(trade, dict):
+                        self.logger().error(f"Unexpected trade data format: {trade}")
+                        continue  # Skip this trade if it's not a dictionary
+
                     exchange_order_id = str(trade["tradeId"])
                     if exchange_order_id in order_by_exchange_id_map:
-                        # This is a fill for a tracked order
+                        # Xử lý lệnh đã được theo dõi
                         tracked_order = order_by_exchange_id_map[exchange_order_id]
                         fee = TradeFeeBase.new_spot_fee(
                             fee_schema=self.trade_fee_schema(),
@@ -447,7 +466,7 @@ class BitgetExchange(ExchangePyBase):
                         )
                         self._order_tracker.process_trade_update(trade_update)
                     elif self.is_confirmed_new_order_filled_event(str(trade["id"]), exchange_order_id, trading_pair):
-                        # This is a fill of an order registered in the DB but not tracked any more
+                        # Xử lý lệnh đã được khớp nhưng không được theo dõi
                         self._current_trade_fills.add(TradeFillOrderDetails(
                             market=self.display_name,
                             exchange_trade_id=str(trade["id"]),

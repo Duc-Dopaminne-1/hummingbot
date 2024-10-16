@@ -19,11 +19,12 @@ class BitgetOrderBook(OrderBook):
         :param metadata: a dictionary with extra information to add to the snapshot data
         :return: a snapshot message with the snapshot information received from the exchange
         """
+
         if metadata:
             msg.update(metadata)
         return OrderBookMessage(OrderBookMessageType.SNAPSHOT, {
             "trading_pair": msg["trading_pair"],
-            "update_id": msg["lastUpdateId"],
+            "update_id": int(msg["ts"]),
             "bids": msg["bids"],
             "asks": msg["asks"]
         }, timestamp=timestamp)

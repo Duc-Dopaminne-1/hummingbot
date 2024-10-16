@@ -62,6 +62,7 @@ class RESTAssistant:
             print( {"serverTime": response_json['data']})
             return {"serverTime": response_json['data']}
 
+        print("4444 44", response_json)
         return response_json
 
     async def execute_request_and_get_response(
@@ -120,7 +121,6 @@ class RESTAssistant:
         resp = await wait_for(self._connection.call(request), timeout)
 
         resp = await self._post_process_response(resp)
-
         return resp
 
     async def _pre_process_request(self, request: RESTRequest) -> RESTRequest:
