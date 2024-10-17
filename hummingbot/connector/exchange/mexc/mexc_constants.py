@@ -15,7 +15,7 @@ PRIVATE_API_VERSION = "v3"
 
 # Public API endpoints or MexcClient function
 TICKER_PRICE_CHANGE_PATH_URL = "/ticker/24hr"
-TICKER_BOOK_PATH_URL = "https://api.mexc/api//ticker/bookTicker"
+TICKER_BOOK_PATH_URL = "/ticker/bookTicker"
 EXCHANGE_INFO_PATH_URL = "/exchangeInfo"
 SUPPORTED_SYMBOL_PATH_URL = "/defaultSymbols"
 PING_PATH_URL = "/ping"
