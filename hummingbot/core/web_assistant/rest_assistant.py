@@ -59,10 +59,8 @@ class RESTAssistant:
 
         response_json = await response.json()
         if url == "https://api.bitget.com/api/spot/v1/public/time":
-            print( {"serverTime": response_json['data']})
             return {"serverTime": response_json['data']}
 
-        print("4444 44", response_json)
         return response_json
 
     async def execute_request_and_get_response(
