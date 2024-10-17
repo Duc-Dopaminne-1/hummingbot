@@ -851,9 +851,13 @@ class ExchangePyBase(ExchangeBase, ABC):
     # === Exchange / Trading logic methods that call the API ===
 
     async def _update_trading_rules(self):
+
         exchange_info = await self._make_trading_rules_request()
+
         trading_rules_list = await self._format_trading_rules(exchange_info)
+
         self._trading_rules.clear()
+
         for trading_rule in trading_rules_list:
             self._trading_rules[trading_rule.trading_pair] = trading_rule
         self._initialize_trading_pair_symbols_from_exchange_info(exchange_info=exchange_info)
@@ -900,9 +904,9 @@ class ExchangePyBase(ExchangeBase, ABC):
         rest_assistant = await self._web_assistants_factory.get_rest_assistant()
 
         url = overwrite_url or await self._api_request_url(path_url=path_url, is_auth_required=is_auth_required)
-
         for _ in range(2):
             try:
+
                 request_result = await rest_assistant.execute_request(
                     url=url,
                     params=params,
@@ -916,13 +920,13 @@ class ExchangePyBase(ExchangeBase, ABC):
 
                 return request_result
             except IOError as request_exception:
+
                 last_exception = request_exception
                 if self._is_request_exception_related_to_time_synchronizer(request_exception=request_exception):
                     self._time_synchronizer.clear_time_offset_ms_samples()
                     await self._update_time_synchronizer()
                 else:
                     raise
-
         # Failed even after the last retry
         raise last_exception
 

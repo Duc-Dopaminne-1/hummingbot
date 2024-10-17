@@ -175,6 +175,7 @@ class GatewayHttpClient:
         client = self._http_client(self._client_config_map)
 
         parsed_response = {}
+
         try:
             if method == "get":
                 if len(params) > 0:

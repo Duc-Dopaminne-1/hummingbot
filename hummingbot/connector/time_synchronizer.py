@@ -61,18 +61,22 @@ class TimeSynchronizer:
 
         :param time_provider: Awaitable object that returns the current time
         """
+
         try:
             local_before_ms: float = self._current_seconds_counter() * 1e3
             server_time_ms: float = await time_provider
             local_after_ms: float = self._current_seconds_counter() * 1e3
             local_server_time_pre_image_ms: float = (local_before_ms + local_after_ms) / 2.0
-            time_offset_ms: float = server_time_ms - local_server_time_pre_image_ms
+            ## TODO BITGET  time_offset_ms: float = server_time_ms
+
+            time_offset_ms: float = float(server_time_ms) - float(local_server_time_pre_image_ms)
+
             self.add_time_offset_ms_sample(time_offset_ms)
         except asyncio.CancelledError:
             raise
         except Exception:
             self.logger().network("Error getting server time.", exc_info=True,
-                                  app_warning_msg="Could not refresh server time. Check network connection.")
+                                  app_warning_msg="Could not refresh server time. Check network connection.22")
 
     async def update_server_time_if_not_initialized(self, time_provider: Awaitable):
         """

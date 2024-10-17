@@ -29,6 +29,11 @@ from hummingbot.core.web_assistant.web_assistants_factory import WebAssistantsFa
 if TYPE_CHECKING:
     from hummingbot.client.config.config_helpers import ClientConfigAdapter
 
+
+def _symbol_and_product_type(full_symbol: str) -> str:
+    return full_symbol.split(CONSTANTS.SYMBOL_AND_PRODUCT_TYPE_SEPARATOR)
+
+
 class BitgetExchange(ExchangePyBase):
     UPDATE_ORDER_STATUS_MIN_INTERVAL = 10.0
 
@@ -38,12 +43,14 @@ class BitgetExchange(ExchangePyBase):
                  client_config_map: "ClientConfigAdapter",
                  bitget_api_key: str,
                  bitget_api_secret: str,
+                 bitget_passphrase: str = None,
                  trading_pairs: Optional[List[str]] = None,
                  trading_required: bool = True,
                  domain: str = CONSTANTS.DEFAULT_DOMAIN,
                  ):
         self.api_key = bitget_api_key
         self.secret_key = bitget_api_secret
+        self.bitget_passphrase = bitget_passphrase
         self._domain = domain
         self._trading_required = trading_required
         self._trading_pairs = trading_pairs
@@ -63,14 +70,16 @@ class BitgetExchange(ExchangePyBase):
         return BitgetAuth(
             api_key=self.api_key,
             secret_key=self.secret_key,
+            passphrase=self.bitget_passphrase,
             time_provider=self._time_synchronizer)
 
     @property
     def name(self) -> str:
-        if self._domain == "com":
-            return "bitget"
-        else:
-            return f"bitget_{self._domain}"
+        return "bitget"
+        # if self._domain == "com":
+        #     return "bitget"
+        # else:
+        #     return f"bitget_{self._domain}"
 
     @property
     def rate_limits_rules(self):
@@ -177,6 +186,7 @@ class BitgetExchange(ExchangePyBase):
                            price: Decimal,
                            **kwargs) -> Tuple[str, float]:
         order_result = None
+        self.logger().debug(f"0000000000000 _place_order")
         amount_str = f"{amount:f}"
         type_str = BitgetExchange.bitget_order_type(order_type)
         side_str = CONSTANTS.SIDE_BUY if trade_type is TradeType.BUY else CONSTANTS.SIDE_SELL
@@ -184,11 +194,13 @@ class BitgetExchange(ExchangePyBase):
         api_params = {"symbol": symbol,
                       "side": side_str,
                       "quantity": amount_str,
+                      "force": "normal",
                       # "quoteOrderQty": amount_str,
+                      "orderType": "limit" if order_type.is_limit_type() else "market",
                       "type": type_str,
                       "newClientOrderId": order_id}
         if order_type.is_limit_type():
-            price_str = f"{price:f}"
+            price_str = f"{round(price, 2):f}"
             api_params["price"] = price_str
         else:
             if trade_type == TradeType.BUY:
@@ -204,6 +216,8 @@ class BitgetExchange(ExchangePyBase):
                 })
         if order_type == OrderType.LIMIT:
             api_params["timeInForce"] = CONSTANTS.TIME_IN_FORCE_GTC
+
+        self.logger().info(f"api_params = {api_params}")
 
         try:
             order_result = await self._api_post(
@@ -238,15 +252,21 @@ class BitgetExchange(ExchangePyBase):
         return False
 
     async def _format_trading_rules(self, exchange_info_dict: Dict[str, Any]) -> List[TradingRule]:
-        trading_pair_rules = exchange_info_dict.get("symbols", [])
+        trading_pair_rules = exchange_info_dict.get("data", [])
         retval = []
         for rule in filter(bitget_utils.is_exchange_information_valid, trading_pair_rules):
             try:
                 trading_pair = await self.trading_pair_associated_to_exchange_symbol(symbol=rule.get("symbol"))
-                min_order_size = Decimal(rule.get("baseSizePrecision"))
+                min_order_size = Decimal(rule.get("minTradeAmount"))
                 min_price_inc = Decimal(f"1e-{rule['quotePrecision']}")
-                min_amount_inc = Decimal(f"1e-{rule['baseAssetPrecision']}")
-                min_notional = Decimal(rule['quoteAmountPrecision'])
+                min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
+                min_notional = Decimal(rule['minTradeUSDT'])
+                #
+                # min_order_size = Decimal(f"1e-{rule.get('quantityScale')}")
+                # min_price_inc = Decimal(f"1e-{rule['priceScale']}")
+                # min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
+                # min_notional = Decimal(rule['minTradeUSDT'])
+
                 retval.append(
                     TradingRule(trading_pair,
                                 min_order_size=min_order_size,
@@ -270,35 +290,47 @@ class BitgetExchange(ExchangePyBase):
 
     async def _user_stream_event_listener(self):
         """
-        Listens to messages from _user_stream_tracker.user_stream queue.
-        Traders, Orders, and Balance updates from the WS.
+        Listens to message in _user_stream_tracker.user_stream queue.
         """
-        user_channels = [
-            CONSTANTS.USER_TRADES_ENDPOINT_NAME,
-            CONSTANTS.USER_ORDERS_ENDPOINT_NAME,
-            CONSTANTS.USER_BALANCE_ENDPOINT_NAME,
-        ]
         async for event_message in self._iter_user_event_queue():
             try:
-                channel: str = event_message.get("c", None)
-                results: Dict[str, Any] = event_message.get("d", {})
-                if "code" not in event_message and channel not in user_channels:
-                    self.logger().error(
-                        f"Unexpected message in user stream: {event_message}.", exc_info=True)
-                    continue
-                if channel == CONSTANTS.USER_TRADES_ENDPOINT_NAME:
-                    self._process_trade_message(results)
-                elif channel == CONSTANTS.USER_ORDERS_ENDPOINT_NAME:
-                    self._process_order_message(event_message)
-                elif channel == CONSTANTS.USER_BALANCE_ENDPOINT_NAME:
-                    self._process_balance_message_ws(results)
+                # In case the message is a simple string like "pong"
+                if isinstance(event_message, str):
+                    if event_message == "pong":
+                        # You can log the pong or simply continue
+                        self.logger().info("Received pong message, continuing...")
+                        continue
 
+                self.logger().info(f"DDDDD {event_message}")
+                print("DDDDD", event_message)
+                endpoint = event_message["arg"]["channel"]
+                payload = event_message["data"]
+
+                if endpoint == CONSTANTS.WS_SUBSCRIPTION_ORDERS_ENDPOINT_NAME:
+                    for order_msg in payload:
+                        self._process_trade_event_message(order_msg)
+                        self._process_order_event_message(order_msg)
+                        self._process_balance_update_from_order_event(order_msg)
+                elif endpoint == CONSTANTS.WS_SUBSCRIPTION_WALLET_ENDPOINT_NAME:
+                    for wallet_msg in payload:
+                        self._process_spot_event_message(wallet_msg)
             except asyncio.CancelledError:
                 raise
             except Exception:
-                self.logger().error(
-                    "Unexpected error in user stream listener loop.", exc_info=True)
-                await self._sleep(5.0)
+                self.logger().exception("Unexpected error in user stream listener loop.")
+
+    def _process_spot_event_message(self, spot_msg: Dict[str, Any]):
+        self.logger().debug(f"CCCCCCCCCCCCCCCCC {spot_msg}")
+        print("CCCCCCCCCCCCCCCCC", spot_msg)
+        coin_name = spot_msg.get("coinName", None)  # This is the name of the asset (e.g., USDT, BTC)
+        if coin_name is not None:
+            available = Decimal(str(spot_msg["available"]))  # Available balance
+            frozen = Decimal(str(spot_msg["frozen"]))  # Frozen balance (in open orders)
+            total = available + frozen  # Total balance (available + frozen)
+
+            # Update the balance in the account dictionary
+            self._account_balances[coin_name] = total
+            self._account_available_balances[coin_name] = available
 
     def _process_balance_message_ws(self, account):
         asset_name = account["a"]
@@ -390,12 +422,13 @@ class BitgetExchange(ExchangePyBase):
             tasks = []
             trading_pairs = self.trading_pairs
             for trading_pair in trading_pairs:
+                trading_pair = trading_pair.replace("-", "")
                 params = {
-                    "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
-                }
-                if self._last_poll_timestamp > 0:
-                    params["startTime"] = query_time
-                tasks.append(self._api_get(
+                 "symbol": trading_pair
+               }
+            if self._last_poll_timestamp > 0:
+             params["startTime"] = query_time
+             tasks.append(self._api_get(
                     path_url=CONSTANTS.MY_TRADES_PATH_URL,
                     params=params,
                     is_auth_required=True,
@@ -403,19 +436,23 @@ class BitgetExchange(ExchangePyBase):
 
             self.logger().debug(f"Polling for order fills of {len(tasks)} trading pairs.")
             results = await safe_gather(*tasks, return_exceptions=True)
-
-            for trades, trading_pair in zip(results, trading_pairs):
-
+            data = results[0]["data"] if len(results) > 0 and "data" in results[0] else []
+            for trades, trading_pair in zip(data, trading_pairs):
                 if isinstance(trades, Exception):
                     self.logger().network(
                         f"Error fetching trades update for the order {trading_pair}: {trades}.",
                         app_warning_msg=f"Failed to fetch trade update for {trading_pair}."
                     )
                     continue
+
                 for trade in trades:
-                    exchange_order_id = str(trade["orderId"])
+                    if not isinstance(trade, dict):
+                        self.logger().error(f"Unexpected trade data format: {trade}")
+                        continue  # Skip this trade if it's not a dictionary
+
+                    exchange_order_id = str(trade["tradeId"])
                     if exchange_order_id in order_by_exchange_id_map:
-                        # This is a fill for a tracked order
+                        # Xử lý lệnh đã được theo dõi
                         tracked_order = order_by_exchange_id_map[exchange_order_id]
                         fee = TradeFeeBase.new_spot_fee(
                             fee_schema=self.trade_fee_schema(),
@@ -436,7 +473,7 @@ class BitgetExchange(ExchangePyBase):
                         )
                         self._order_tracker.process_trade_update(trade_update)
                     elif self.is_confirmed_new_order_filled_event(str(trade["id"]), exchange_order_id, trading_pair):
-                        # This is a fill of an order registered in the DB but not tracked any more
+                        # Xử lý lệnh đã được khớp nhưng không được theo dõi
                         self._current_trade_fills.add(TradeFillOrderDetails(
                             market=self.display_name,
                             exchange_trade_id=str(trade["id"]),
@@ -463,6 +500,10 @@ class BitgetExchange(ExchangePyBase):
                             ))
                         self.logger().info(f"Recreating missing trade in TradeFill: {trade}")
 
+    async def product_type_for_trading_pair(self, trading_pair: str) -> str:
+        full_symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+        return _symbol_and_product_type(full_symbol=full_symbol)[-1]
+
     async def _all_trade_updates_for_order(self, order: InFlightOrder) -> List[TradeUpdate]:
         trade_updates = []
 
@@ -480,7 +521,7 @@ class BitgetExchange(ExchangePyBase):
                 headers={"Content-Type": "application/json"})
 
             for trade in all_fills_response:
-                exchange_order_id = str(trade["orderId"])
+                exchange_order_id = str(trade["tradeId"])
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
@@ -525,6 +566,7 @@ class BitgetExchange(ExchangePyBase):
         return order_update
 
     async def _update_balances(self):
+
         local_asset_names = set(self._account_balances.keys())
         remote_asset_names = set()
 
@@ -533,13 +575,28 @@ class BitgetExchange(ExchangePyBase):
             is_auth_required=True,
             headers={"Content-Type": "application/json"})
 
-        balances = account_info["balances"]
+        self._account_available_balances = {}
+        self._account_balances = {}
+        remote_asset_names = set()
+
+        # Lấy balances từ account_info
+        balances = account_info["data"]
+
+        # Duyệt qua từng phần tử của balances
         for balance_entry in balances:
-            asset_name = balance_entry["asset"]
-            free_balance = Decimal(balance_entry["free"])
-            total_balance = Decimal(balance_entry["free"]) + Decimal(balance_entry["locked"])
+            asset_name = balance_entry["coin"]  # Thay "asset" bằng "coin"
+            free_balance = Decimal(balance_entry["available"])  # Thay "free" bằng "available"
+            locked_balance = Decimal(balance_entry["locked"])  # Dùng "locked" hoặc "frozen" nếu có
+
+            # Tổng số dư bao gồm cả số dư đang bị khóa
+            total_balance = free_balance + locked_balance
+
+            # Lưu trữ số dư vào dictionary
             self._account_available_balances[asset_name] = free_balance
             self._account_balances[asset_name] = total_balance
+
+            # Thêm tên tài sản vào tập hợp remote_asset_names
+
             remote_asset_names.add(asset_name)
 
         asset_names_to_remove = local_asset_names.difference(remote_asset_names)
@@ -548,13 +605,17 @@ class BitgetExchange(ExchangePyBase):
             del self._account_balances[asset_name]
 
     def _initialize_trading_pair_symbols_from_exchange_info(self, exchange_info: Dict[str, Any]):
+
         mapping = bidict()
-        for symbol_data in filter(bitget_utils.is_exchange_information_valid, exchange_info["symbols"]):
-            mapping[symbol_data["symbol"]] = combine_to_hb_trading_pair(base=symbol_data["baseAsset"],
-                                                                        quote=symbol_data["quoteAsset"])
+        # print("hello 2", bitget_utils.is_exchange_information_valid)
+        # print("hello 2", exchange_info["data"])
+        for symbol_data in filter(bitget_utils.is_exchange_information_valid, exchange_info["data"]):
+            mapping[symbol_data["symbol"]] = combine_to_hb_trading_pair(base=symbol_data["baseCoin"],
+                                                                        quote=symbol_data["quoteCoin"])
         self._set_trading_pair_symbol_map(mapping)
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
+
         params = {
             "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
         }
@@ -566,13 +627,16 @@ class BitgetExchange(ExchangePyBase):
             headers={"Content-Type": "application/json"}
         )
 
-        return float(resp_json["lastPrice"])
+        return float(resp_json['data'][0]['lastPr'])
 
     async def _make_network_check_request(self):
-        await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
+        pass
+        # await self._api_get(path_url=self.check_network_request_path, headers={"Content-Type": "application/json"})
 
     async def _make_trading_rules_request(self) -> Any:
+
         exchange_info = await self._api_get(path_url=self.trading_rules_request_path, headers={"Content-Type": "application/json"})
+
         return exchange_info
 
     async def _make_trading_pairs_request(self) -> Any:

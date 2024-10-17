@@ -1,4 +1,5 @@
 import json
+import logging
 from asyncio import wait_for
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
@@ -55,7 +56,11 @@ class RESTAssistant:
             timeout=timeout,
             headers=headers,
         )
+
         response_json = await response.json()
+        if url == "https://api.bitget.com/api/spot/v1/public/time":
+            return {"serverTime": response_json['data']}
+
         return response_json
 
     async def execute_request_and_get_response(
@@ -80,6 +85,7 @@ class RESTAssistant:
 
         data = json.dumps(data) if data is not None else data
 
+
         request = RESTRequest(
             method=method,
             url=url,
@@ -89,8 +95,8 @@ class RESTAssistant:
             is_auth_required=is_auth_required,
             throttler_limit_id=throttler_limit_id
         )
-
         async with self._throttler.execute_task(limit_id=throttler_limit_id):
+
             response = await self.call(request=request, timeout=timeout)
 
             if 400 <= response.status:
@@ -99,17 +105,24 @@ class RESTAssistant:
                     error_text = "N/A" if "<html" in error_response else error_response
                     raise IOError(f"Error executing request {method.name} {url}. HTTP status is {response.status}. "
                                   f"Error: {error_text}")
+
             return response
 
     async def call(self, request: RESTRequest, timeout: Optional[float] = None) -> RESTResponse:
+
         request = deepcopy(request)
+
         request = await self._pre_process_request(request)
+
         request = await self._authenticate(request)
+
         resp = await wait_for(self._connection.call(request), timeout)
+
         resp = await self._post_process_response(resp)
         return resp
 
     async def _pre_process_request(self, request: RESTRequest) -> RESTRequest:
+
         for pre_processor in self._rest_pre_processors:
             request = await pre_processor.pre_process(request)
         return request
