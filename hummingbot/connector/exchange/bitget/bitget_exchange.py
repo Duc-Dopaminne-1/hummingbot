@@ -200,7 +200,7 @@ class BitgetExchange(ExchangePyBase):
                       "type": type_str,
                       "newClientOrderId": order_id}
         if order_type.is_limit_type():
-            price_str = f"{round(price, 2):f}"
+            price_str = f"{round(price, 2):f}" if price >= 1 else f"{price:f}"
             api_params["price"] = price_str
         else:
             if trade_type == TradeType.BUY:
