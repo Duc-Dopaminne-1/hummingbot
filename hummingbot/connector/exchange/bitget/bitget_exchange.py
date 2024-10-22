@@ -16,7 +16,7 @@ from hummingbot.connector.exchange.bitget.bitget_auth import BitgetAuth
 from hummingbot.connector.exchange_py_base import ExchangePyBase
 from hummingbot.connector.trading_rule import TradingRule
 from hummingbot.connector.utils import TradeFillOrderDetails, combine_to_hb_trading_pair
-from hummingbot.core.data_type.common import OrderType, TradeType
+from hummingbot.core.data_type.common import OrderType, PositionAction, TradeType
 from hummingbot.core.data_type.in_flight_order import InFlightOrder, OrderUpdate, TradeUpdate
 from hummingbot.core.data_type.order_book_tracker_data_source import OrderBookTrackerDataSource
 from hummingbot.core.data_type.trade_fee import DeductedFromReturnsTradeFee, TokenAmount, TradeFeeBase
@@ -186,8 +186,10 @@ class BitgetExchange(ExchangePyBase):
                            price: Decimal,
                            **kwargs) -> Tuple[str, float]:
         order_result = None
-        self.logger().debug(f"0000000000000 _place_order")
+        self.logger().debug(f"0000000000000 _place_order {price:f}")
         amount_str = f"{amount:f}"
+        self.logger().debug(f"111111111 _place_order {amount:f}")
+        self.logger().debug(f"222222222 _place_order {amount:f}")
         type_str = BitgetExchange.bitget_order_type(order_type)
         side_str = CONSTANTS.SIDE_BUY if trade_type is TradeType.BUY else CONSTANTS.SIDE_SELL
         symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
@@ -200,7 +202,7 @@ class BitgetExchange(ExchangePyBase):
                       "type": type_str,
                       "newClientOrderId": order_id}
         if order_type.is_limit_type():
-            price_str = f"{round(price, 2):f}" if price >= 1 else f"{price:f}"
+            price_str = f"{price:f}"
             api_params["price"] = price_str
         else:
             if trade_type == TradeType.BUY:
@@ -217,15 +219,16 @@ class BitgetExchange(ExchangePyBase):
         if order_type == OrderType.LIMIT:
             api_params["timeInForce"] = CONSTANTS.TIME_IN_FORCE_GTC
 
-        self.logger().info(f"api_params = {api_params}")
+        print("22222 api_params", api_params)
+        self.logger().info(f"2222222 api_params = {api_params}")
 
         try:
             order_result = await self._api_post(
                 path_url=CONSTANTS.ORDER_PATH_URL,
                 data=api_params,
                 is_auth_required=True)
-            o_id = str(order_result["orderId"])
-            transact_time = order_result["transactTime"] * 1e-3
+            o_id = str(order_result["data"]["orderId"])
+            transact_time = order_result["requestTime"] * 1e-3
         except IOError as e:
             error_description = str(e)
             is_server_overloaded = ("status is 503" in error_description
@@ -258,10 +261,18 @@ class BitgetExchange(ExchangePyBase):
             try:
                 trading_pair = await self.trading_pair_associated_to_exchange_symbol(symbol=rule.get("symbol"))
                 min_order_size = Decimal(rule.get("minTradeAmount"))
-                min_price_inc = Decimal(f"1e-{rule['quotePrecision']}")
+                min_price_inc = Decimal(f"1e-{rule['priceScale']}")
                 min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
                 min_notional = Decimal(rule['minTradeUSDT'])
-                #
+                # print("1111111 min_order_size", min_order_size)
+                # print("1111111 min_price_inc", min_price_inc)
+                # print("1111111 min_amount_inc", min_amount_inc)
+                # print("1111111 min_notional", min_notional)
+                # self.logger().info(f"1111111 trading_pair {trading_pair}")
+                # self.logger().info(f"1111111 min_order_size {min_order_size}")
+                # self.logger().info(f"1111111 min_price_inc {min_price_inc}")
+                # self.logger().info(f"1111111 min_amount_inc {min_amount_inc}")
+                # self.logger().info(f"1111111 min_notional {min_notional}")
                 # min_order_size = Decimal(f"1e-{rule.get('quantityScale')}")
                 # min_price_inc = Decimal(f"1e-{rule['priceScale']}")
                 # min_amount_inc = Decimal(f"1e-{rule['quantityScale']}")
@@ -308,9 +319,9 @@ class BitgetExchange(ExchangePyBase):
 
                 if endpoint == CONSTANTS.WS_SUBSCRIPTION_ORDERS_ENDPOINT_NAME:
                     for order_msg in payload:
+                        self.logger().info(f"222222 REERRRRRR {order_msg}")
                         self._process_trade_event_message(order_msg)
                         self._process_order_event_message(order_msg)
-                        self._process_balance_update_from_order_event(order_msg)
                 elif endpoint == CONSTANTS.WS_SUBSCRIPTION_WALLET_ENDPOINT_NAME:
                     for wallet_msg in payload:
                         self._process_spot_event_message(wallet_msg)
@@ -319,9 +330,78 @@ class BitgetExchange(ExchangePyBase):
             except Exception:
                 self.logger().exception("Unexpected error in user stream listener loop.")
 
+    def _process_trade_event_message(self, trade_msg: Dict[str, Any]):
+        """
+        Updates in-flight order and trigger order filled event for trade message received. Triggers order completed
+        event if the total executed amount equals to the specified order amount.
+
+        :param trade_msg: The trade event message payload
+        """
+
+        client_order_id = str(trade_msg["clOrdId"])
+        fillable_order = self._order_tracker.all_fillable_orders.get(client_order_id)
+        self.logger().info(f"222222 fillable_order {fillable_order}")
+        if fillable_order is not None and "ordId" in trade_msg:
+            trade_update = self._parse_websocket_trade_update(trade_msg=trade_msg, tracked_order=fillable_order)
+            if trade_update:
+                self._order_tracker.process_trade_update(trade_update)
+
+    def _parse_websocket_trade_update(self, trade_msg: Dict, tracked_order: InFlightOrder) -> TradeUpdate:
+        trade_id: str = trade_msg["ordId"]
+
+        if trade_id is not None:
+            trade_id = str(trade_id)
+            fee_asset = trade_msg["fillFeeCcy"]
+            fee_amount = Decimal(trade_msg["fillFee"])
+            position_side = trade_msg["side"]
+            position_action = (PositionAction.OPEN
+                               if (tracked_order.trade_type is TradeType.BUY and position_side == "buy"
+                                   or tracked_order.trade_type is TradeType.SELL and position_side == "sell")
+                               else PositionAction.CLOSE)
+
+            flat_fees = [] if fee_amount == Decimal("0") else [TokenAmount(amount=fee_amount, token=fee_asset)]
+
+            fee = TradeFeeBase.new_perpetual_fee(
+                fee_schema=self.trade_fee_schema(),
+                position_action=position_action,
+                percent_token=fee_asset,
+                flat_fees=flat_fees,
+            )
+
+            exec_price = Decimal(trade_msg["fillPx"]) if "fillPx" in trade_msg else Decimal(trade_msg["px"])
+            exec_time = int(trade_msg["cTime"]) * 1e-3
+
+            trade_update: TradeUpdate = TradeUpdate(
+                trade_id=trade_id,
+                client_order_id=tracked_order.client_order_id,
+                exchange_order_id=str(trade_msg["ordId"]),
+                trading_pair=tracked_order.trading_pair,
+                fill_timestamp=exec_time,
+                fill_price=exec_price,
+                fill_base_amount=Decimal(trade_msg["fillSz"]),
+                fill_quote_amount=exec_price * Decimal(trade_msg["fillSz"]),
+                fee=fee,
+            )
+
+            return trade_update
+
+    def _process_order_event_message(self, order_msg: Dict[str, Any]):
+        order_status = CONSTANTS.ORDER_STATE[order_msg["status"]]
+        client_order_id = str(order_msg["clOrdId"])
+        updatable_order = self._order_tracker.all_updatable_orders.get(client_order_id)
+
+        if updatable_order is not None:
+            new_order_update: OrderUpdate = OrderUpdate(
+                trading_pair=updatable_order.trading_pair,
+                update_timestamp=self.current_timestamp,
+                new_state=order_status,
+                client_order_id=client_order_id,
+                exchange_order_id=order_msg["ordId"],
+            )
+            self._order_tracker.process_order_update(new_order_update)
+
     def _process_spot_event_message(self, spot_msg: Dict[str, Any]):
-        self.logger().debug(f"CCCCCCCCCCCCCCCCC {spot_msg}")
-        print("CCCCCCCCCCCCCCCCC", spot_msg)
+        self.logger().debug(f"3333 CCCCCCCCCCC {spot_msg}")
         coin_name = spot_msg.get("coinName", None)  # This is the name of the asset (e.g., USDT, BTC)
         if coin_name is not None:
             available = Decimal(str(spot_msg["available"]))  # Available balance
@@ -331,11 +411,6 @@ class BitgetExchange(ExchangePyBase):
             # Update the balance in the account dictionary
             self._account_balances[coin_name] = total
             self._account_available_balances[coin_name] = available
-
-    def _process_balance_message_ws(self, account):
-        asset_name = account["a"]
-        self._account_available_balances[asset_name] = Decimal(str(account["f"]))
-        self._account_balances[asset_name] = Decimal(str(account["f"])) + Decimal(str(account["l"]))
 
     def _create_trade_update_with_order_fill_data(
             self,
@@ -616,9 +691,15 @@ class BitgetExchange(ExchangePyBase):
 
     async def _get_last_traded_price(self, trading_pair: str) -> float:
 
+        # params = {
+        #     "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+        # }
+
         params = {
-            "symbol": await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
+            "symbol":  trading_pair.replace("-", "")
         }
+        print("2222222 11 params", params)
+
 
         resp_json = await self._api_request(
             method=RESTMethod.GET,
@@ -627,6 +708,7 @@ class BitgetExchange(ExchangePyBase):
             headers={"Content-Type": "application/json"}
         )
 
+        print("2222222 5555 resp_json", float(resp_json['data'][0]['lastPr']))
         return float(resp_json['data'][0]['lastPr'])
 
     async def _make_network_check_request(self):
