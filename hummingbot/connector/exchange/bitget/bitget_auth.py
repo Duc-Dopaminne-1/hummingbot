@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import hmac
 import time
 from typing import Any, Dict, List
@@ -8,13 +7,6 @@ from urllib.parse import urlencode
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
 from hummingbot.core.web_assistant.auth import AuthBase
 from hummingbot.core.web_assistant.connections.data_types import RESTMethod, RESTRequest, WSRequest
-
-
-def create_signature(timestamp, method, request_path, secret_key, body=""):
-    prehash_string = timestamp + method + request_path + body
-    hmac_key = hmac.new(secret_key.encode(), prehash_string.encode(), hashlib.sha256)
-    signature = base64.b64encode(hmac_key.digest()).decode()
-    return signature
 
 
 class BitgetAuth(AuthBase):
@@ -75,7 +67,7 @@ class BitgetAuth(AuthBase):
     def _sign(message, secret_key):
         mac = hmac.new(bytes(secret_key, encoding='utf8'), bytes(message, encoding='utf-8'), digestmod='sha256')
         d = mac.digest()
-        return str(base64.b64encode(d), 'utf8')
+        return base64.b64encode(d).decode().strip()
 
     @staticmethod
     def _pre_hash(timestamp: str, method: str, request_path: str, body: str):

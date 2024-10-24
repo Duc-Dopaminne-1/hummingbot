@@ -34,6 +34,12 @@ def _symbol_and_product_type(full_symbol: str) -> str:
     return full_symbol.split(CONSTANTS.SYMBOL_AND_PRODUCT_TYPE_SEPARATOR)
 
 
+def format_symbol(symbol):
+    if "_SPBL" in symbol:
+        return symbol.replace("_SPBL", "")
+    return symbol
+
+
 class BitgetExchange(ExchangePyBase):
     UPDATE_ORDER_STATUS_MIN_INTERVAL = 10.0
 
@@ -186,10 +192,8 @@ class BitgetExchange(ExchangePyBase):
                            price: Decimal,
                            **kwargs) -> Tuple[str, float]:
         order_result = None
-        self.logger().debug(f"0000000000000 _place_order {price:f}")
+
         amount_str = f"{amount:f}"
-        self.logger().debug(f"111111111 _place_order {amount:f}")
-        self.logger().debug(f"222222222 _place_order {amount:f}")
         type_str = BitgetExchange.bitget_order_type(order_type)
         side_str = CONSTANTS.SIDE_BUY if trade_type is TradeType.BUY else CONSTANTS.SIDE_SELL
         symbol = await self.exchange_symbol_associated_to_pair(trading_pair=trading_pair)
@@ -200,7 +204,7 @@ class BitgetExchange(ExchangePyBase):
                       # "quoteOrderQty": amount_str,
                       "orderType": "limit" if order_type.is_limit_type() else "market",
                       "type": type_str,
-                      "newClientOrderId": order_id}
+                      "clientOid": order_id}
         if order_type.is_limit_type():
             price_str = f"{price:f}"
             api_params["price"] = price_str
@@ -219,14 +223,15 @@ class BitgetExchange(ExchangePyBase):
         if order_type == OrderType.LIMIT:
             api_params["timeInForce"] = CONSTANTS.TIME_IN_FORCE_GTC
 
-        print("22222 api_params", api_params)
-        self.logger().info(f"2222222 api_params = {api_params}")
-
+        print("888888 CREATE ORDER_PATH_URL", api_params)
+        self.logger().info(f"888888 CREATE ORDER_PATH_UR 1 = {api_params}")
         try:
             order_result = await self._api_post(
                 path_url=CONSTANTS.ORDER_PATH_URL,
                 data=api_params,
                 is_auth_required=True)
+            self.logger().info(f"888888 CREATE RESULT = {order_result}")
+            print("888888 CREATE RESULT 1", order_result)
             o_id = str(order_result["data"]["orderId"])
             transact_time = order_result["requestTime"] * 1e-3
         except IOError as e:
@@ -244,13 +249,17 @@ class BitgetExchange(ExchangePyBase):
         symbol = await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair)
         api_params = {
             "symbol": symbol,
-            "origClientOrderId": order_id,
+            "orderId": tracked_order.exchange_order_id # order_id,
         }
-        cancel_result = await self._api_delete(
-            path_url=CONSTANTS.ORDER_PATH_URL,
-            params=api_params,
+        self.logger().info(f"99999999 _place_cancel = {api_params}")
+        print("99999999 _place_cancel 1", api_params)
+        cancel_result = await self._api_post(
+            path_url=CONSTANTS.CANCEL_ACTIVE_ORDER_PATH_URL,
+            data=api_params,
             is_auth_required=True)
-        if cancel_result.get("status") == "NEW":
+        self.logger().info(f"99999999 cancel_result = {cancel_result}")
+        print("99999999 cancel_result 1", cancel_result)
+        if cancel_result.get("msg") == "success":
             return True
         return False
 
@@ -499,8 +508,10 @@ class BitgetExchange(ExchangePyBase):
             for trading_pair in trading_pairs:
                 trading_pair = trading_pair.replace("-", "")
                 params = {
-                 "symbol": trading_pair
+                 "symbol": format_symbol(trading_pair),
                }
+
+            self.logger().debug(f"55555 aaaaa {params}")
             if self._last_poll_timestamp > 0:
              params["startTime"] = query_time
              tasks.append(self._api_get(
@@ -585,34 +596,37 @@ class BitgetExchange(ExchangePyBase):
         if order.exchange_order_id is not None:
             exchange_order_id = order.exchange_order_id
             trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=order.trading_pair)
+            print("55555 1 bbbbbb",  format_symbol(trading_pair))
+            self.logger().info(f"55555 bbbbbb = {format_symbol(trading_pair)}")
             all_fills_response = await self._api_get(
                 path_url=CONSTANTS.MY_TRADES_PATH_URL,
                 params={
-                    "symbol": trading_pair,
+                    "symbol": format_symbol(trading_pair),
                     "orderId": exchange_order_id
                 },
                 is_auth_required=True,
                 limit_id=CONSTANTS.MY_TRADES_PATH_URL,
                 headers={"Content-Type": "application/json"})
-
-            for trade in all_fills_response:
+            print("66666 1 bbbbbb",all_fills_response)
+            self.logger().info(f"66666 bbbbbb = {all_fills_response}")
+            for trade in all_fills_response["data"]:
                 exchange_order_id = str(trade["tradeId"])
                 fee = TradeFeeBase.new_spot_fee(
                     fee_schema=self.trade_fee_schema(),
                     trade_type=order.trade_type,
-                    percent_token=trade["commissionAsset"],
-                    flat_fees=[TokenAmount(amount=Decimal(trade["commission"]), token=trade["commissionAsset"])]
+                    percent_token=trade["feeDetail"]["totalFee"],
+                    flat_fees=[TokenAmount(amount=Decimal(trade["feeDetail"]["totalFee"]), token=trade["symbol"])]
                 )
                 trade_update = TradeUpdate(
-                    trade_id=str(trade["id"]),
+                    trade_id=str(trade["tradeId"]),
                     client_order_id=order.client_order_id,
                     exchange_order_id=exchange_order_id,
                     trading_pair=trading_pair,
                     fee=fee,
-                    fill_base_amount=Decimal(trade["qty"]),
-                    fill_quote_amount=Decimal(trade["quoteQty"]),
-                    fill_price=Decimal(trade["price"]),
-                    fill_timestamp=trade["time"] * 1e-3,
+                    fill_base_amount=Decimal(trade["amount"]),
+                    fill_quote_amount=Decimal(trade["size"]),
+                    fill_price=Decimal(trade["priceAvg"]),
+                    fill_timestamp=trade["cTime"] * 1e-3,
                 )
                 trade_updates.append(trade_update)
 
@@ -620,21 +634,33 @@ class BitgetExchange(ExchangePyBase):
 
     async def _request_order_status(self, tracked_order: InFlightOrder) -> OrderUpdate:
         trading_pair = await self.exchange_symbol_associated_to_pair(trading_pair=tracked_order.trading_pair)
+        self.logger().info(f"77777 GET = {format_symbol(trading_pair)} {tracked_order.exchange_order_id}")
+        print("77777 GET 1", format_symbol(trading_pair))
+        print("77777 GET 2", tracked_order.exchange_order_id)
         updated_order_data = await self._api_get(
-            path_url=CONSTANTS.ORDER_PATH_URL,
+            path_url=CONSTANTS.QUERY_ACTIVE_ORDER_PATH_URL,
             params={
-                "symbol": trading_pair,
-                "origClientOrderId": tracked_order.client_order_id},
+                "symbol": format_symbol(trading_pair),
+                # "clientOid": tracked_order.exchange_order_id
+            },
             is_auth_required=True,
             headers={"Content-Type": "application/json"})
+        self.logger().info(f"77777 RESULT 1 = {updated_order_data}")
 
+        updated_order_data = updated_order_data.get('data', [])
+        self.logger().info(f"77777 RESULT 2 = {updated_order_data}")
+        if tracked_order.exchange_order_id:
+            updated_order_data = [order for order in updated_order_data if order.get('orderId') == tracked_order.exchange_order_id]
+        updated_order_data = updated_order_data[0]
+        self.logger().info(f"77777 RESULT 3 = {updated_order_data}")
         new_state = CONSTANTS.ORDER_STATE[updated_order_data["status"]]
+        self.logger().info(f"77777 RESULT 4 = {updated_order_data}")
 
         order_update = OrderUpdate(
             client_order_id=tracked_order.client_order_id,
             exchange_order_id=str(updated_order_data["orderId"]),
             trading_pair=tracked_order.trading_pair,
-            update_timestamp=updated_order_data["updateTime"] * 1e-3,
+            update_timestamp=self.current_timestamp,
             new_state=new_state,
         )
 
