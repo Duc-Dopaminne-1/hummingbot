@@ -638,6 +638,7 @@ class BitgetPerpetualDerivative(PerpetualDerivativePyBase):
                     await self._process_account_position_event(payload)
                 elif endpoint == CONSTANTS.WS_SUBSCRIPTION_ORDERS_ENDPOINT_NAME:
                     for order_msg in payload:
+                        self.logger().info(f"222222 REERRRRRR {order_msg}")
                         self._process_trade_event_message(order_msg)
                         self._process_order_event_message(order_msg)
                         self._process_balance_update_from_order_event(order_msg)
@@ -687,11 +688,7 @@ class BitgetPerpetualDerivative(PerpetualDerivativePyBase):
             self._perpetual_trading.remove_position(position_key)
 
     def _process_order_event_message(self, order_msg: Dict[str, Any]):
-        """
-        Updates in-flight order and triggers cancellation or failure event if needed.
 
-        :param order_msg: The order event message payload
-        """
         order_status = CONSTANTS.ORDER_STATE[order_msg["status"]]
         client_order_id = str(order_msg["clOrdId"])
         updatable_order = self._order_tracker.all_updatable_orders.get(client_order_id)
@@ -708,7 +705,7 @@ class BitgetPerpetualDerivative(PerpetualDerivativePyBase):
 
     def _process_balance_update_from_order_event(self, order_msg: Dict[str, Any]):
         order_status = CONSTANTS.ORDER_STATE[order_msg["status"]]
-        position_side = PositionSide[order_msg["posSide"].upper()]
+        position_side = PositionSide[order_msg["side"].upper()]
         trade_type = TradeType[order_msg["side"].upper()]
         collateral_token = order_msg["tgtCcy"]
         states_to_consider = [OrderState.OPEN, OrderState.CANCELED]
@@ -737,14 +734,14 @@ class BitgetPerpetualDerivative(PerpetualDerivativePyBase):
 
         client_order_id = str(trade_msg["clOrdId"])
         fillable_order = self._order_tracker.all_fillable_orders.get(client_order_id)
-
-        if fillable_order is not None and "tradeId" in trade_msg:
+        self.logger().info(f"222222 fillable_order {fillable_order}")
+        if fillable_order is not None and "ordId" in trade_msg:
             trade_update = self._parse_websocket_trade_update(trade_msg=trade_msg, tracked_order=fillable_order)
             if trade_update:
                 self._order_tracker.process_trade_update(trade_update)
 
     def _parse_websocket_trade_update(self, trade_msg: Dict, tracked_order: InFlightOrder) -> TradeUpdate:
-        trade_id: str = trade_msg["tradeId"]
+        trade_id: str = trade_msg["ordId"]
 
         if trade_id is not None:
             trade_id = str(trade_id)
@@ -766,7 +763,7 @@ class BitgetPerpetualDerivative(PerpetualDerivativePyBase):
             )
 
             exec_price = Decimal(trade_msg["fillPx"]) if "fillPx" in trade_msg else Decimal(trade_msg["px"])
-            exec_time = int(trade_msg["fillTime"]) * 1e-3
+            exec_time = int(trade_msg["cTime"]) * 1e-3
 
             trade_update: TradeUpdate = TradeUpdate(
                 trade_id=trade_id,

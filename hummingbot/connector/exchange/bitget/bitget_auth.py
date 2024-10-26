@@ -1,8 +1,7 @@
-import hashlib
+import base64
 import hmac
-import json
-from collections import OrderedDict
-from typing import Any, Dict
+import time
+from typing import Any, Dict, List
 from urllib.parse import urlencode
 
 from hummingbot.connector.time_synchronizer import TimeSynchronizer
@@ -11,54 +10,67 @@ from hummingbot.core.web_assistant.connections.data_types import RESTMethod, RES
 
 
 class BitgetAuth(AuthBase):
-    def __init__(self, api_key: str, secret_key: str, time_provider: TimeSynchronizer):
-        self.api_key = api_key
-        self.secret_key = secret_key
-        self.time_provider = time_provider
+    """
+    Auth class required by Bitget  API
+    """
+    def __init__(self, api_key: str, secret_key: str, passphrase: str, time_provider: TimeSynchronizer):
+        self._api_key: str = api_key
+        self._secret_key: str = secret_key
+        self._passphrase: str = passphrase
+        self._time_provider: TimeSynchronizer = time_provider
 
     async def rest_authenticate(self, request: RESTRequest) -> RESTRequest:
-        """
-        Adds the server time and the signature to the request, required for authenticated interactions. It also adds
-        the required parameter in the request header.
-        :param request: the request to be configured for authenticated interaction
-        """
-        if request.method == RESTMethod.POST:
-            request.data = self.add_auth_to_params(params=json.loads(request.data) if request.data is not None else {})
-        else:
-            request.params = self.add_auth_to_params(params=request.params)
-
         headers = {}
-        if request.headers is not None:
-            headers.update(request.headers)
-        headers.update(self.header_for_authentication())
-        request.headers = headers
+        headers["Content-Type"] = "application/json"
+        headers["ACCESS-KEY"] = self._api_key
+        headers["ACCESS-TIMESTAMP"] = str(int(time.time() * 1000))
+        headers["ACCESS-PASSPHRASE"] = self._passphrase
+        # headers["locale"] = "en-US"
+        path = request.throttler_limit_id
+        # TODO check cho nay
 
+        if request.method is RESTMethod.GET and request.params:
+            path += "?" + urlencode(request.params)
+        payload = str(request.data)
+        headers["ACCESS-SIGN"] = self._sign(
+            self._pre_hash(headers["ACCESS-TIMESTAMP"], request.method.value, path, payload),
+            self._secret_key)
+        request.headers.update(headers)
         return request
 
     async def ws_authenticate(self, request: WSRequest) -> WSRequest:
         """
-        This method is intended to configure a websocket request to be authenticated. Bitget does not use this
+        This method is intended to configure a websocket request to be authenticated. OKX does not use this
         functionality
         """
         return request  # pass-through
 
-    def add_auth_to_params(self,
-                           params: Dict[str, Any]):
-        timestamp = int(self.time_provider.time() * 1e3)
+    def get_ws_auth_payload(self) -> List[Dict[str, Any]]:
+        """
+        Generates a dictionary with all required information for the authentication process
+        :return: a dictionary of authentication info including the request signature
+        """
+        timestamp = str(int(self._time_provider.time()))
+        signature = self._sign(self._pre_hash(timestamp, "GET", "/user/verify", ""), self._secret_key)
+        auth_info = [
+            {
+                "apiKey": self._api_key,
+                "passphrase": self._passphrase,
+                "timestamp": timestamp,
+                "sign": signature
+            }
+        ]
 
-        request_params = OrderedDict(params or {})
-        request_params["timestamp"] = timestamp
+        return auth_info
 
-        signature = self._generate_signature(params=request_params)
-        request_params["signature"] = signature
+    @staticmethod
+    def _sign(message, secret_key):
+        mac = hmac.new(bytes(secret_key, encoding='utf8'), bytes(message, encoding='utf-8'), digestmod='sha256')
+        d = mac.digest()
+        return base64.b64encode(d).decode().strip()
 
-        return request_params
-
-    def header_for_authentication(self) -> Dict[str, str]:
-        return {"X-Bitget-APIKEY": self.api_key, "Content-Type": "application/json"}
-
-    def _generate_signature(self, params: Dict[str, Any]) -> str:
-
-        encoded_params_str = urlencode(params)
-        digest = hmac.new(self.secret_key.encode("utf8"), encoded_params_str.encode("utf8"), hashlib.sha256).hexdigest()
-        return digest
+    @staticmethod
+    def _pre_hash(timestamp: str, method: str, request_path: str, body: str):
+        if body in ["None", "null"]:
+            body = ""
+        return str(timestamp) + method.upper() + request_path + body

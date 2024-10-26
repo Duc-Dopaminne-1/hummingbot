@@ -66,10 +66,11 @@ class ScriptStrategyBase(StrategyPyBase):
         :param timestamp: current tick timestamp
         """
         if not self.ready_to_trade:
+            self.logger().warning(self.connectors.values())
             self.ready_to_trade = all(ex.ready for ex in self.connectors.values())
             if not self.ready_to_trade:
                 for con in [c for c in self.connectors.values() if not c.ready]:
-                    self.logger().warning(f"{con.name} is not ready. Please wait...")
+                    self.logger().warning(f"{con.name} is not ready. Please wait 22222...")
                 return
         else:
             self.on_tick()
