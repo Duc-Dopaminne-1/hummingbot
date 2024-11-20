@@ -55,7 +55,6 @@ class SQLConnectionManager(TransactionBase):
 
     @classmethod
     def create_db_path(cls, db_path: Optional[str] = None, db_name: Optional[str] = None) -> str:
-        print("444444 db_path", db_path)
         if db_path is not None:
             return db_path
         if db_name is not None:

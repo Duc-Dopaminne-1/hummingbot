@@ -27,7 +27,10 @@ SERVER_TIME_PATH_URL = "/api/spot/v1/public/time"
 ACCOUNTS_PATH_URL = "/api/v2/spot/account/assets"
 MY_TRADES_PATH_URL = "/api/v2/spot/trade/fills"
 ORDER_PATH_URL = "/api/spot/v1/trade/orders"
+QUERY_ACTIVE_ORDER_PATH_URL = "/api/v2/spot/trade/unfilled-orders"
+CANCEL_ACTIVE_ORDER_PATH_URL = "/api/spot/v1/trade/cancel-order"
 Bitget_USER_STREAM_PATH_URL = "/userDataStream"
+
 WS_HEARTBEAT_TIME_INTERVAL = 30
 SECONDS_TO_WAIT_TO_RECEIVE_MESSAGE = 20
 SYMBOL_AND_PRODUCT_TYPE_SEPARATOR = "_"
@@ -35,8 +38,8 @@ SYMBOL_AND_PRODUCT_TYPE_SEPARATOR = "_"
 SIDE_BUY = "buy"
 SIDE_SELL = "sell"
 
-TIME_IN_FORCE_GTC = "gtc"  # Good till canceled
-TIME_IN_FORCE_IOC = "ioc"  # Immediate or cancel
+TIME_IN_FORCE_GTC = "GTC"  # Good till canceled
+TIME_IN_FORCE_IOC = "IOC"  # Immediate or cancel
 
 # Rate Limit Types
 IP_REQUEST_RATE_LIMIT = "IP_REQUEST_RATE_LIMIT"
@@ -136,11 +139,15 @@ TIMESTAMP_RELATED_ERROR_MESSAGE = "Timestamp expired"
 # Order States
 ORDER_STATE = {
     "new": OrderState.OPEN,
+    "live": OrderState.OPEN,
+    "partial-fill": OrderState.PARTIALLY_FILLED,
     "partially_filled": OrderState.PARTIALLY_FILLED,
     "filled": OrderState.FILLED,
     "canceled": OrderState.CANCELED,
+    "cancelled": OrderState.CANCELED,
     "rejected": OrderState.FAILED,
     "expired": OrderState.FAILED,
+    "full-fill": OrderState.FILLED,
 }
 
 # WebSocket Order States
@@ -163,6 +170,16 @@ USER_ORDERS_ENDPOINT_NAME = "/api/spot/v1/trade/orders"
 USER_BALANCE_ENDPOINT_NAME = "/api/v2/spot/account/assets"
 WS_CONNECTION_TIME_INTERVAL = 20
 RATE_LIMITS = [
+    RateLimit(
+        limit_id=QUERY_ACTIVE_ORDER_PATH_URL,
+        limit=10,
+        time_interval=ONE_MINUTE,
+    ),
+    RateLimit(
+        limit_id=CANCEL_ACTIVE_ORDER_PATH_URL,
+        limit=10,
+        time_interval=ONE_MINUTE,
+    ),
     RateLimit(limit_id=IP_REQUEST_RATE_LIMIT, limit=1200, time_interval=ONE_MINUTE),
     RateLimit(limit_id=UID_REQUEST_RATE_LIMIT, limit=900, time_interval=ONE_MINUTE),
     # Weighted Limits

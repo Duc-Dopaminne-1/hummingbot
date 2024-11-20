@@ -794,7 +794,6 @@ class ExchangePyBase(ExchangeBase, ABC):
                 await self._sleep(0.5)
 
     async def _update_time_synchronizer(self, pass_on_non_cancelled_error: bool = False):
-        print("last_exception 22")
         try:
             await self._time_synchronizer.update_server_time_offset_with_time_provider(
                 time_provider=self.web_utils.get_current_server_time(
@@ -905,9 +904,6 @@ class ExchangePyBase(ExchangeBase, ABC):
         rest_assistant = await self._web_assistants_factory.get_rest_assistant()
 
         url = overwrite_url or await self._api_request_url(path_url=path_url, is_auth_required=is_auth_required)
-        # print("=== API Start 3 ===")
-        # print(url)
-        # print("=== API End 3 ===")
         for _ in range(2):
             try:
 
@@ -1089,7 +1085,6 @@ class ExchangePyBase(ExchangeBase, ABC):
 
     async def _make_trading_rules_request(self) -> Any:
         exchange_info = await self._api_get(path_url=self.trading_rules_request_path)
-        print("666")
         return exchange_info
 
     async def _make_trading_pairs_request(self) -> Any:

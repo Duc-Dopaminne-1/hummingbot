@@ -65,9 +65,6 @@ class ScriptStrategyBase(StrategyPyBase):
 
         :param timestamp: current tick timestamp
         """
-        # TODO check here
-
-        self.logger().warning(f"DUC SKT 1111")
         if not self.ready_to_trade:
             self.logger().warning(self.connectors.values())
             self.ready_to_trade = all(ex.ready for ex in self.connectors.values())

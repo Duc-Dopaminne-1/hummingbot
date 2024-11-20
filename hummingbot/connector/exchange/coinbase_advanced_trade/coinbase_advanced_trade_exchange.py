@@ -231,7 +231,6 @@ class CoinbaseAdvancedTradeExchange(ExchangePyBase):
         super()._stop_network()
 
     async def _update_time_synchronizer(self, pass_on_non_cancelled_error: bool = False):
-        print("last_exception AA")
         # Overriding ExchangePyBase: Synchronizer expects time in ms
         try:
             await self._time_synchronizer.update_server_time_offset_with_time_provider(

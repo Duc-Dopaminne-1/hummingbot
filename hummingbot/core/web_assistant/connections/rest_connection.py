@@ -15,12 +15,7 @@ class RESTConnection:
             data=request.data,
             headers=request.headers,
         )
-        # print("=== API Start ===")
-        # print(request.url)
-        # print(request.params)
-        # print(request.data)
-        # print(request.headers)
-        # print("=== API End ===")
+
         resp = await self._build_resp(aiohttp_resp)
         return resp
 

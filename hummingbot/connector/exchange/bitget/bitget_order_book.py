@@ -23,10 +23,10 @@ class BitgetOrderBook(OrderBook):
         if metadata:
             msg.update(metadata)
         return OrderBookMessage(OrderBookMessageType.SNAPSHOT, {
-            "trading_pair": msg["trading_pair"],
-            "update_id": int(msg["ts"]),
-            "bids": msg["bids"],
-            "asks": msg["asks"]
+            "trading_pair": metadata["trading_pair"],
+            "update_id": int(msg["requestTime"]),
+            "bids": msg["data"]["bids"],
+            "asks": msg["data"]["asks"]
         }, timestamp=timestamp)
 
     @classmethod

@@ -484,7 +484,6 @@ class AllConnectorSettings:
 
     @classmethod
     def get_connector_config_keys(cls, connector: str) -> Optional["BaseConnectorConfigMap"]:
-        # print("AAAAAA", cls.get_connector_settings()[connector].config_keys)
         return cls.get_connector_settings()[connector].config_keys
 
     @classmethod
